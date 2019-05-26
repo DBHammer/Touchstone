@@ -33,3 +33,11 @@ gen
 hs_err_pid*
 
 .gitignore
+/data/
+.vscode/
+bin/META-INF/
+bin/controller/
+bin/generator/
+data/
+src/controller/
+src/generator/

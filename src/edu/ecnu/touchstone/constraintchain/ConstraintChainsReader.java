@@ -1,15 +1,14 @@
 package edu.ecnu.touchstone.constraintchain;
 
+import edu.ecnu.touchstone.run.Touchstone;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-
-import edu.ecnu.touchstone.run.Touchstone;
 
 public class ConstraintChainsReader {
 
@@ -18,12 +17,12 @@ public class ConstraintChainsReader {
 	public ConstraintChainsReader() {
 		logger = Logger.getLogger(Touchstone.class);
 	}
-	
+
 	public List<ConstraintChain> read(String cardinalityConstraintsInput) {
 		List<ConstraintChain> constraintChains = new ArrayList<ConstraintChain>();
-		
+
 		String inputLine = null;
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new 
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(new
 				FileInputStream(cardinalityConstraintsInput)))) {
 			// mark the basic filter operation
 			int id = 0;
@@ -39,7 +38,7 @@ public class ConstraintChainsReader {
 				String[] chainInfoArr = inputLine.split(";");
 				String tableName = chainInfoArr[0].substring(1, chainInfoArr[0].length() - 1);
 				List<CCNode> nodes = new ArrayList<CCNode>();
-				
+
 				for (int i = 1; i < chainInfoArr.length; i++) {
 					chainInfoArr[i] = chainInfoArr[i].substring(1, chainInfoArr[i].length() - 1);
 					String[] nodeInfoArr = chainInfoArr[i].split(",");
@@ -58,12 +57,12 @@ public class ConstraintChainsReader {
 							} else if (logicalRelationStr.equals("or")) {
 								logicalRelation = 1;
 							} else {
-								logger.error("\n\tUnsupported logical relation: " + logicalRelationStr 
+								logger.error("\n\tUnsupported logical relation: " + logicalRelationStr
 										+ ", " + chainInfoArr[i]);
 								System.exit(0);
 							}
 							filterOperations = new FilterOperation[filterInfoArr.length - 1];
-							float filterOperationProbability = getFilterOperationProbability(logicalRelation, 
+							float filterOperationProbability = getFilterOperationProbability(logicalRelation,
 									filterInfoArr.length - 1, probability);
 							for (int j = 0; j < filterInfoArr.length - 1; j++) {
 								filterOperations[j] = newFilterOperation(id++, filterInfoArr[j], filterOperationProbability);
@@ -83,24 +82,34 @@ public class ConstraintChainsReader {
 						for (int j = 0; j < primaryKeys.length; j++) {
 							primaryKeys[j] = tableName + "." + primaryKeys[j];
 						}
+						double[] nullProbability=new double[(nodeInfoArr.length - 2) / 2];
 						int[] canJoinNum = new int[(nodeInfoArr.length - 2) / 2];
 						int[] cantJoinNum = new int[(nodeInfoArr.length - 2) / 2];
-						for(int j = 2; j < nodeInfoArr.length; j += 2) {	
-							canJoinNum[(j - 2) / 2] = Integer.parseInt(nodeInfoArr[j]);
+						for(int j = 2; j < nodeInfoArr.length; j += 2) {
+							String[] canJoinInfo=nodeInfoArr[j].split("#");
+							canJoinNum[(j - 2) / 2] = Integer.parseInt(canJoinInfo[0]);
+							if(canJoinInfo.length>1){
+								nullProbability[(j - 2) / 2]= Double.valueOf(canJoinInfo[1]);
+							}
 							cantJoinNum[(j - 2) / 2] = Integer.parseInt(nodeInfoArr[j + 1]);
 						}
-						PKJoin pkJoin = new PKJoin(primaryKeys, canJoinNum, cantJoinNum);
+						PKJoin pkJoin = new PKJoin(primaryKeys, canJoinNum, cantJoinNum,nullProbability);
 						CCNode node = new CCNode(1, pkJoin);
 						nodes.add(node);
-					
+
 					// FKJoin node
 					} else if(nodeInfoArr[0].equals("2") && nodeInfoArr.length == 6) {
 						String[] foreignKeys = nodeInfoArr[1].split("#");
 						float probability = Float.parseFloat(nodeInfoArr[2]);
 						String[] primakryKeys = nodeInfoArr[3].split("#");
-						int canJoinNum = Integer.parseInt(nodeInfoArr[4]);
+						String[] canJoinInfo=nodeInfoArr[4].split("#");
+						int canJoinNum = Integer.parseInt(canJoinInfo[0]);
+						double nullProbability = 0;
+						if(canJoinInfo.length>1){
+							nullProbability=Double.valueOf(canJoinInfo[1]);
+						}
 						int cantJoinNum = Integer.parseInt(nodeInfoArr[5]);
-						FKJoin fkJoin = new FKJoin(foreignKeys, probability, primakryKeys, canJoinNum, cantJoinNum);
+						FKJoin fkJoin = new FKJoin(foreignKeys, probability, primakryKeys, canJoinNum, cantJoinNum,nullProbability);
 						CCNode node = new CCNode(2, fkJoin);
 						nodes.add(node);
 					

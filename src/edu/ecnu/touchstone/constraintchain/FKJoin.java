@@ -15,24 +15,26 @@ public class FKJoin implements Serializable {
 	private String[] primakryKeys = null;
 	private int canJoinNum;
 	private int cantJoinNum;
+	private double nullProbability;
 
 	// to avoid the string manipulation in data generation
 	private String fkStr = null;
 	private String rpkStr = null;
-	
+
 	// to solve the 'special situation'
 	private transient FKJoinAdjustment fkJoinAdjustment = null;
-	
+
 	// it's needed for generating 'fkJoinAdjustment' (its attribute 'probability')
 	private transient float accumulativeProbability;
-	
-	public FKJoin(String[] foreignKeys, float probability, String[] primakryKeys, int canJoinNum, int cantJoinNum) {
+
+	public FKJoin(String[] foreignKeys, float probability, String[] primakryKeys, int canJoinNum, int cantJoinNum,double nullProbability) {
 		super();
 		this.foreignKeys = foreignKeys;
 		this.probability = probability;
 		this.primakryKeys = primakryKeys;
 		this.canJoinNum = canJoinNum;
 		this.cantJoinNum = cantJoinNum;
+		this.nullProbability=nullProbability;
 		fkStr = Arrays.toString(this.foreignKeys);
 		rpkStr = Arrays.toString(this.primakryKeys);
 	}

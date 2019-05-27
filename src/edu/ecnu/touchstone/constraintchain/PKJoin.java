@@ -17,15 +17,17 @@ public class PKJoin implements Serializable {
 	// aligned in sequence
 	private int[] canJoinNum = null;
 	private int[] cantJoinNum = null;
-	
+	private double[] nullProbability = null;
+
 	// to avoid the string manipulation in data generation
 	private String pkStr = null;
 
-	public PKJoin(String[] primakryKeys, int[] canJoinNum, int[] cantJoinNum) {
+	public PKJoin(String[] primakryKeys, int[] canJoinNum, int[] cantJoinNum ,double[] nullProbability) {
 		super();
 		this.primakryKeys = primakryKeys;
 		this.canJoinNum = canJoinNum;
 		this.cantJoinNum = cantJoinNum;
+		this.nullProbability=nullProbability;
 		pkStr = Arrays.toString(this.primakryKeys);
 	}
 	

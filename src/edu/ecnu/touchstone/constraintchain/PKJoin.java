@@ -47,6 +47,10 @@ public class PKJoin implements Serializable {
 		return canJoinNum;
 	}
 
+	public double[] getNullProbability(){
+		return nullProbability;
+	}
+
 	public int[] getCantJoinNum() {
 		return cantJoinNum;
 	}

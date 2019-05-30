@@ -15,6 +15,11 @@ public class FKJoin implements Serializable {
 	private String[] primakryKeys = null;
 	private int canJoinNum;
 	private int cantJoinNum;
+
+	public double getNullProbability() {
+		return nullProbability;
+	}
+
 	private double nullProbability;
 
 	// to avoid the string manipulation in data generation

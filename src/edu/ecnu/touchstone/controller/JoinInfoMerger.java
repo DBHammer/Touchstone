@@ -16,10 +16,8 @@ public class JoinInfoMerger {
 
 		for (int i = 1; i < pkJoinInfoList.size(); i++) {
 			Map<Integer, ArrayList<long[]>> pkJoinInfo = pkJoinInfoList.get(i);
-			Iterator<Entry<Integer, ArrayList<long[]>>> iterator = pkJoinInfo.entrySet().iterator();
 
-			while (iterator.hasNext()) {
-				Entry<Integer, ArrayList<long[]>> entry = iterator.next();
+			for (Entry<Integer, ArrayList<long[]>> entry : pkJoinInfo.entrySet()) {
 				if (!mergedPkJoinInfo.containsKey(entry.getKey())) {
 					mergedPkJoinInfo.put(entry.getKey(), entry.getValue());
 				} else {

@@ -53,6 +53,7 @@ public class FKJoin implements Serializable {
 		this.cantJoinNum = fkJoin.cantJoinNum;
 		this.fkStr = fkJoin.fkStr;
 		this.rpkStr = fkJoin.rpkStr;
+		this.nullProbability=fkJoin.nullProbability;
 	}
 
 	public void setFkJoinAdjustment(FKJoinAdjustment fkJoinAdjustment) {

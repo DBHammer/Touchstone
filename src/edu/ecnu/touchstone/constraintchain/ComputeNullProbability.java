@@ -22,38 +22,54 @@ public class ComputeNullProbability {
     /**
      * acquire a dataPercentage and constraintChainNullProbability
      */
-    public ComputeNullProbability(ArrayList<ComputeNode> computeNodes) {
+    public ComputeNullProbability(ArrayList<ComputeNode> computeNodes,
+                                  Map<Integer, ArrayList<long[]>> fkJoinInfo) {
         int statusSize = (int) Math.pow(2, computeNodes.size()) - 1;
         int[] checkType = new int[computeNodes.size()];
         checkType[0] = 1;
         for (int i = 1; i < checkType.length; i++) {
             checkType[i] = checkType[i - 1] * 2;
         }
+
+        joinStatusList = new int[statusSize];
+
+        //初始化当前的join组信息
+        Map<Integer,Double>fkJoinPercentage=new HashMap<>();
+        for (int i = 0; i < statusSize; i++) {
+            int joinStatus = 0;
+            for (int j = 0; j < computeNodes.size(); j++) {
+                if ((i & checkType[j]) == 0) {
+                    joinStatus += computeNodes.get(j).getStatus();
+                } else {
+                    joinStatus += 2 * computeNodes.get(j).getStatus();
+                }
+            }
+            fkJoinPercentage.put(joinStatus,0D);
+            joinStatusList[i] = joinStatus;
+        }
+
+        int allOnes=3*joinStatusList[0];
+        long fkJoinInfoSize=0;
+        for (ArrayList<long[]> value : fkJoinInfo.values()) {
+            fkJoinInfoSize+=value.size();
+        }
+        for (Map.Entry<Integer, ArrayList<long[]>> integerArrayListEntry : fkJoinInfo.entrySet()) {
+            int status=integerArrayListEntry.getKey()&allOnes;
+            double percentage=(double)integerArrayListEntry.getValue().size()/fkJoinInfoSize;
+            fkJoinPercentage.put(status, percentage+fkJoinPercentage.get(status));
+        }
+
         P = new double[statusSize][statusSize];
         q = new double[statusSize];
         matrixA = new double[computeNodes.size()][statusSize];
         b = new double[computeNodes.size()];
-        joinStatusList = new int[statusSize];
         for (int i = 0; i < statusSize; i++) {
-            double dataPercentage = 1;
-            int joinStatus = 0;
-            for (int j = 0; j < computeNodes.size(); j++) {
-                if ((i & checkType[j]) == 0) {
-                    dataPercentage *= computeNodes.get(j).getDataPercentage();
-                    joinStatus += computeNodes.get(j).getStatus();
-                } else {
-                    dataPercentage *= 1 - computeNodes.get(j).getDataPercentage();
-                    joinStatus += 2 * computeNodes.get(j).getStatus();
-                }
-            }
-            joinStatusList[i] = joinStatus;
-
             double pValue = 0;
             double qValue = 0;
             for (int j = 0; j < computeNodes.size(); j++) {
                 if ((i & checkType[j]) == 0) {
-                    matrixA[j][i] = dataPercentage;
-                    double computePercentage = dataPercentage / computeNodes.get(j).getDataPercentage();
+                    matrixA[j][i] = fkJoinPercentage.get(joinStatusList[i]);
+                    double computePercentage = matrixA[j][i] / computeNodes.get(j).getDataPercentage();
                     pValue += computePercentage * computePercentage;
                     qValue += computeNodes.get(j).getNullProbability() * computePercentage * computePercentage;
                 } else {
@@ -99,7 +115,7 @@ public class ComputeNullProbability {
      *
      * @throws JOptimizerException the input matrix cannot compute the result
      */
-    private Map<Integer,Double> computeConstraintChainNullProbabilityForEveryStatus() throws JOptimizerException {
+    public Map<Integer, Double> computeConstraintChainNullProbabilityForEveryStatus() throws JOptimizerException {
         PDQuadraticMultivariateRealFunction objectiveFunction = new PDQuadraticMultivariateRealFunction(P, q, 0);
         //optimization problem
         OptimizationRequest or = new OptimizationRequest();
@@ -121,10 +137,11 @@ public class ComputeNullProbability {
         opt.setOptimizationRequest(or);
         opt.optimize();
         double[] sol = opt.getOptimizationResponse().getSolution();
-        Map<Integer,Double>computeConstraintChainNullProbabilityForEveryStatus=new HashMap<>(sol.length);
+        Map<Integer, Double> computeConstraintChainNullProbabilityForEveryStatus = new HashMap<>(sol.length);
         for (int i = 0; i < sol.length; i++) {
-            computeConstraintChainNullProbabilityForEveryStatus.put(joinStatusList[i],sol[i]);
+            computeConstraintChainNullProbabilityForEveryStatus.put(joinStatusList[i], sol[i]);
         }
+        computeConstraintChainNullProbabilityForEveryStatus.put(2 * joinStatusList[0], 0D);
         return computeConstraintChainNullProbabilityForEveryStatus;
     }
 
@@ -133,9 +150,9 @@ public class ComputeNullProbability {
         ArrayList<ComputeNode> computeNodes = new ArrayList<>();
         computeNodes.add(new ComputeNode(1, 0.20, 0.76));
         computeNodes.add(new ComputeNode(4, 0.4, 0.40));
-        computeNodes.add(new ComputeNode(16, 0.75, 0.50));
-        computeNodes.add(new ComputeNode(64, 0.73, 0.34));
-        ComputeNullProbability computeNullProbability = new ComputeNullProbability(computeNodes);
+//        computeNodes.add(new ComputeNode(16, 0.75, 0.50));
+//        computeNodes.add(new ComputeNode(64, 0.73, 0.34));
+        ComputeNullProbability computeNullProbability = new ComputeNullProbability(computeNodes,null);
         System.out.println(computeNullProbability);
         try {
             computeNullProbability.computeConstraintChainNullProbabilityForEveryStatus();
@@ -146,26 +163,3 @@ public class ComputeNullProbability {
     }
 }
 
-class ComputeNode {
-    private int status;
-    private double nullProbability;
-    private double dataPercentage;
-
-    int getStatus() {
-        return status;
-    }
-
-    double getNullProbability() {
-        return nullProbability;
-    }
-
-    double getDataPercentage() {
-        return dataPercentage;
-    }
-
-    ComputeNode(int status, double dataPercentage, double nullProbability) {
-        this.status = status;
-        this.nullProbability = nullProbability;
-        this.dataPercentage = dataPercentage;
-    }
-}

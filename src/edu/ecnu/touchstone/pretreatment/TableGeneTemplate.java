@@ -1,5 +1,6 @@
 package edu.ecnu.touchstone.pretreatment;
 
+import com.joptimizer.exception.JOptimizerException;
 import edu.ecnu.touchstone.constraintchain.*;
 import edu.ecnu.touchstone.queryinstantiation.Parameter;
 import edu.ecnu.touchstone.run.Statistic;
@@ -53,12 +54,14 @@ public class TableGeneTemplate implements Serializable {
     // the maximum size of pkvs list (the value of map 'pkJoinInfo', for compression algorithm)
     private int pkvsMaxSize;
 
-    private Map<Integer,Double> tableNullProbability;
+    private ArrayList<ComputeNode> computeNodes;
+
+    private Map<Integer, Double> tableNullProbability;
 
     public TableGeneTemplate(String tableName, long tableSize, String pkStr, List<Key> keys, List<Attribute> attributes,
                              List<ConstraintChain> constraintChains, List<String> referencedKeys, Map<String, String> referKeyForeKeyMap,
                              Map<Integer, Parameter> parameterMap, Map<String, Attribute> attributeMap, int shuffleMaxNum,
-                             int pkvsMaxSize,Map<Integer,Double> tableNullProbability) {
+                             int pkvsMaxSize, ArrayList<ComputeNode> computeNodes) {
         super();
         this.tableName = tableName;
         this.tableSize = tableSize;
@@ -72,7 +75,7 @@ public class TableGeneTemplate implements Serializable {
         this.attributeMap = attributeMap;
         this.shuffleMaxNum = shuffleMaxNum;
         this.pkvsMaxSize = pkvsMaxSize;
-        this.tableNullProbability = tableNullProbability;
+        this.computeNodes = computeNodes;
     }
 
     // map: Key: the string representation of referenced primary key (support mixed reference)
@@ -235,6 +238,7 @@ public class TableGeneTemplate implements Serializable {
         }
         this.shuffleMaxNum = template.shuffleMaxNum;
         this.pkvsMaxSize = template.pkvsMaxSize;
+        this.computeNodes = template.computeNodes;
         this.tableNullProbability=template.tableNullProbability;
         // shallow copy
         this.fksJoinInfo = template.fksJoinInfo;
@@ -249,6 +253,7 @@ public class TableGeneTemplate implements Serializable {
         attributeValueMap.clear();
         fkJoinStatusesMap.clear();
         pkJoinStatuses = 0;
+        int nullStatus = 0;
 
         // generate all non-key attributes
         for (int i = 0; i < attributes.size(); i++) {
@@ -293,12 +298,19 @@ public class TableGeneTemplate implements Serializable {
                         if (flag) { // can join
                             for (int k = 0; k < pkJoin.getCanJoinNum().length; k++) {
                                 pkJoinStatuses += pkJoin.getCanJoinNum()[k];
+                                if (pkJoin.getNullProbability()[k] != 0) {
+                                    nullStatus += pkJoin.getCanJoinNum()[k];
+                                }
                             }
                         } else { // can't join
                             for (int k = 0; k < pkJoin.getCantJoinNum().length; k++) {
                                 pkJoinStatuses += pkJoin.getCantJoinNum()[k];
+                                if (pkJoin.getNullProbability()[k] != 0) {
+                                    nullStatus += pkJoin.getCantJoinNum()[k];
+                                }
                             }
                         }
+
                         break;
                     case 2:
                         // the tuple can flow to current node
@@ -381,6 +393,8 @@ public class TableGeneTemplate implements Serializable {
             pkJoinInfo.put(pkJoinStatuses, new ArrayList<long[]>());
             pkJoinInfoSizeMap.put(pkJoinStatuses, 0L);
         }
+
+
         // compression algorithm
         ArrayList<long[]> candidates = pkJoinInfo.get(pkJoinStatuses);
         long size = pkJoinInfoSizeMap.get(pkJoinStatuses) + 1;
@@ -388,8 +402,17 @@ public class TableGeneTemplate implements Serializable {
         if (candidates.size() < pkvsMaxSize) {
             candidates.add(pkValues);
         } else {
-            if (Math.random() < ((double) pkvsMaxSize / size)) {
-                candidates.set((int) (Math.random() * candidates.size()), pkValues);
+            if (computeNodes.size() == 0) {
+                if (Math.random() < ((double) pkvsMaxSize / size)) {
+                    candidates.set((int) (Math.random() * candidates.size()), pkValues);
+                }
+            } else {
+                if (tableNullProbability == null) {
+                    computeNullProbability();
+                }
+                if (Math.random() > tableNullProbability.get(nullStatus)) {
+                    pkJoinInfo.get(pkJoinStatuses).add(pkValues);
+                }
             }
         }
 
@@ -578,6 +601,24 @@ public class TableGeneTemplate implements Serializable {
             }
         }
     }
+    private void computeNullProbability(){
+        ComputeNullProbability computeNullProbability = new ComputeNullProbability(computeNodes, pkJoinInfo);
+        try {
+            tableNullProbability = computeNullProbability.computeConstraintChainNullProbabilityForEveryStatus();
+        } catch (JOptimizerException e) {
+            logger.info(e);
+        }
+        int allOnes = 0;
+        for (ComputeNode computeNode : computeNodes) {
+            allOnes += computeNode.getStatus() * 3;
+        }
+        for (Entry<Integer, ArrayList<long[]>> integerArrayListEntry : pkJoinInfo.entrySet()) {
+            Collections.shuffle(integerArrayListEntry.getValue());
+            double subPercentage = tableNullProbability.get(integerArrayListEntry.getKey() & allOnes);
+            integerArrayListEntry.getValue().subList(0,
+                    (int) (integerArrayListEntry.getValue().size() * (1 - subPercentage)));
+        }
+    }
 
     public String getTableName() {
         return tableName;
@@ -596,6 +637,9 @@ public class TableGeneTemplate implements Serializable {
     }
 
     public Map<Integer, ArrayList<long[]>> getPkJoinInfo() {
+        if(computeNodes.size()!=0&&tableNullProbability==null){
+            computeNullProbability();
+        }
         return pkJoinInfo;
     }
 

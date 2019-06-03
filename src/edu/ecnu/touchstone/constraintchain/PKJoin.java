@@ -18,16 +18,22 @@ public class PKJoin implements Serializable {
 	private int[] canJoinNum = null;
 	private int[] cantJoinNum = null;
 	private double[] nullProbability = null;
+	private double[] dataPercentage=null;
+
+	public double[] getDataPercentage() {
+		return dataPercentage;
+	}
 
 	// to avoid the string manipulation in data generation
 	private String pkStr = null;
 
-	public PKJoin(String[] primakryKeys, int[] canJoinNum, int[] cantJoinNum ,double[] nullProbability) {
+	public PKJoin(String[] primakryKeys, int[] canJoinNum, int[] cantJoinNum ,double[] dataPercentage,double[] nullProbability) {
 		super();
 		this.primakryKeys = primakryKeys;
 		this.canJoinNum = canJoinNum;
 		this.cantJoinNum = cantJoinNum;
 		this.nullProbability=nullProbability;
+		this.dataPercentage=dataPercentage;
 		pkStr = Arrays.toString(this.primakryKeys);
 	}
 	
@@ -37,6 +43,8 @@ public class PKJoin implements Serializable {
 		this.canJoinNum = Arrays.copyOf(pkJoin.canJoinNum, pkJoin.canJoinNum.length);
 		this.cantJoinNum = Arrays.copyOf(pkJoin.cantJoinNum, pkJoin.cantJoinNum.length);
 		this.pkStr = pkJoin.pkStr;
+		this.nullProbability=pkJoin.nullProbability;
+		this.dataPercentage=pkJoin.dataPercentage;
 	}
 
 	public String[] getPrimakryKeys() {

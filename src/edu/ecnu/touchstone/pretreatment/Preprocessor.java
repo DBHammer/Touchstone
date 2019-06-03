@@ -1,5 +1,6 @@
 package edu.ecnu.touchstone.pretreatment;
 
+import com.joptimizer.exception.JOptimizerException;
 import edu.ecnu.touchstone.constraintchain.*;
 import edu.ecnu.touchstone.queryinstantiation.ComputingThreadPool;
 import edu.ecnu.touchstone.queryinstantiation.Parameter;
@@ -98,7 +99,6 @@ public class Preprocessor {
             Map<String, String> referKeyForeKeyMap = new HashMap<>();
             Map<Integer, Parameter> localParameterMap = new HashMap<>();
             Map<String, Attribute> attributeMap = new HashMap<>();
-            Map<Integer,Double> tableNullProbability=new HashMap<>();
 
             // keys
             List<String> primaryKey = table.getPrimaryKey();
@@ -126,7 +126,9 @@ public class Preprocessor {
                     tableConstraintChains.add(constraintChain);
                 }
             }
+
             //nullProbability
+            ArrayList<ComputeNode>computeNodes=new ArrayList<>();
             for (ConstraintChain tableConstraintChain : tableConstraintChains) {
                 for (CCNode node : tableConstraintChain.getNodes()) {
                     if(node.getType()==1){
@@ -134,12 +136,14 @@ public class Preprocessor {
                         double[] nullProbability=pkJoin.getNullProbability();
                         for (int i = 0; i < nullProbability.length; i++) {
                             if(nullProbability[i]>0){
-                                tableNullProbability.put(pkJoin.getCanJoinNum()[i],nullProbability[i]);
+                                computeNodes.add(new ComputeNode(pkJoin.getCanJoinNum()[i],
+                                        pkJoin.getDataPercentage()[i], pkJoin.getNullProbability()[i]));
                             }
                         }
                     }
                 }
             }
+
 
             // referencedKeys (support mixed reference)
             foreignKeys.sort(Comparator.comparing(ForeignKey::getReferencedKey));
@@ -189,7 +193,7 @@ public class Preprocessor {
 
             TableGeneTemplate tableGeneTemplate = new TableGeneTemplate(tableName, tableSize, pkStr,
                     keys, attributes, tableConstraintChains, referencedKeys, referKeyForeKeyMap,
-                    localParameterMap, attributeMap, shuffleMaxNum, pkvsMaxSize,tableNullProbability);
+                    localParameterMap, attributeMap, shuffleMaxNum, pkvsMaxSize,computeNodes);
             tableGeneTemplateMap.put(tableName, tableGeneTemplate);
         }
 

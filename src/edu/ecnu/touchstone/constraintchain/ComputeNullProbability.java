@@ -47,7 +47,7 @@ public class ComputeNullProbability {
             fkJoinPercentage.put(joinStatus,0D);
             joinStatusList[i] = joinStatus;
         }
-
+        fkJoinPercentage.put(2*joinStatusList[0],0D);
         int allOnes=3*joinStatusList[0];
         long fkJoinInfoSize=0;
         for (ArrayList<long[]> value : fkJoinInfo.values()) {

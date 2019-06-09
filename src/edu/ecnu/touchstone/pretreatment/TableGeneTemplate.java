@@ -616,7 +616,7 @@ public class TableGeneTemplate implements Serializable {
             Collections.shuffle(integerArrayListEntry.getValue());
             double subPercentage = tableNullProbability.get(integerArrayListEntry.getKey() & allOnes);
             integerArrayListEntry.getValue().subList(0,
-                    (int) (integerArrayListEntry.getValue().size() * (1 - subPercentage)));
+                    (int) (integerArrayListEntry.getValue().size() * (1 - subPercentage))).clear();
         }
     }
 

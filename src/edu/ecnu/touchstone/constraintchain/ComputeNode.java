@@ -1,6 +1,8 @@
 package edu.ecnu.touchstone.constraintchain;
 
-public class ComputeNode {
+import java.io.Serializable;
+
+public class ComputeNode implements Serializable {
     private int status;
     private double nullProbability;
     private double dataPercentage;

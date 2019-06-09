@@ -54,14 +54,14 @@ public class TableGeneTemplate implements Serializable {
     // the maximum size of pkvs list (the value of map 'pkJoinInfo', for compression algorithm)
     private int pkvsMaxSize;
 
-    private ArrayList<ComputeNode> computeNodes;
+    private Map<Integer,Double> keyNullProbability;
 
     private Map<Integer, Double> tableNullProbability;
 
     public TableGeneTemplate(String tableName, long tableSize, String pkStr, List<Key> keys, List<Attribute> attributes,
                              List<ConstraintChain> constraintChains, List<String> referencedKeys, Map<String, String> referKeyForeKeyMap,
                              Map<Integer, Parameter> parameterMap, Map<String, Attribute> attributeMap, int shuffleMaxNum,
-                             int pkvsMaxSize, ArrayList<ComputeNode> computeNodes) {
+                             int pkvsMaxSize, Map<Integer,Double> keyNullProbability) {
         super();
         this.tableName = tableName;
         this.tableSize = tableSize;
@@ -75,7 +75,7 @@ public class TableGeneTemplate implements Serializable {
         this.attributeMap = attributeMap;
         this.shuffleMaxNum = shuffleMaxNum;
         this.pkvsMaxSize = pkvsMaxSize;
-        this.computeNodes = computeNodes;
+        this.keyNullProbability = keyNullProbability;
     }
 
     // map: Key: the string representation of referenced primary key (support mixed reference)
@@ -238,7 +238,7 @@ public class TableGeneTemplate implements Serializable {
         }
         this.shuffleMaxNum = template.shuffleMaxNum;
         this.pkvsMaxSize = template.pkvsMaxSize;
-        this.computeNodes = template.computeNodes;
+        this.keyNullProbability = template.keyNullProbability;
         this.tableNullProbability=template.tableNullProbability;
         // shallow copy
         this.fksJoinInfo = template.fksJoinInfo;
@@ -402,7 +402,7 @@ public class TableGeneTemplate implements Serializable {
         if (candidates.size() < pkvsMaxSize) {
             candidates.add(pkValues);
         } else {
-            if (computeNodes.size() == 0) {
+            if (keyNullProbability.size() == 0) {
                 if (Math.random() < ((double) pkvsMaxSize / size)) {
                     candidates.set((int) (Math.random() * candidates.size()), pkValues);
                 }
@@ -602,21 +602,21 @@ public class TableGeneTemplate implements Serializable {
         }
     }
     private void computeNullProbability(){
-        ComputeNullProbability computeNullProbability = new ComputeNullProbability(computeNodes, pkJoinInfo);
+        ComputeNullProbability computeNullProbability = new ComputeNullProbability(keyNullProbability, pkJoinInfo);
         try {
             tableNullProbability = computeNullProbability.computeConstraintChainNullProbabilityForEveryStatus();
         } catch (JOptimizerException e) {
             logger.info(e);
         }
         int allOnes = 0;
-        for (ComputeNode computeNode : computeNodes) {
-            allOnes += computeNode.getStatus() * 3;
+        for (Integer status : keyNullProbability.keySet()) {
+            allOnes += status * 3;
         }
         for (Entry<Integer, ArrayList<long[]>> integerArrayListEntry : pkJoinInfo.entrySet()) {
             Collections.shuffle(integerArrayListEntry.getValue());
             double subPercentage = tableNullProbability.get(integerArrayListEntry.getKey() & allOnes);
             integerArrayListEntry.getValue().subList(0,
-                    (int) (integerArrayListEntry.getValue().size() * (1 - subPercentage))).clear();
+                    (int) (integerArrayListEntry.getValue().size() * subPercentage)).clear();
         }
     }
 
@@ -637,7 +637,7 @@ public class TableGeneTemplate implements Serializable {
     }
 
     public Map<Integer, ArrayList<long[]>> getPkJoinInfo() {
-        if(computeNodes.size()!=0&&tableNullProbability==null){
+        if(keyNullProbability.size()!=0&&tableNullProbability==null){
             computeNullProbability();
         }
         return pkJoinInfo;

@@ -82,7 +82,6 @@ public class ConstraintChainsReader {
                         for (int j = 0; j < primaryKeys.length; j++) {
                             primaryKeys[j] = tableName + "." + primaryKeys[j];
                         }
-                        double[] dataPercentage = new double[(nodeInfoArr.length - 2) / 2];
                         double[] nullProbability = new double[(nodeInfoArr.length - 2) / 2];
 
                         int[] canJoinNum = new int[(nodeInfoArr.length - 2) / 2];
@@ -91,13 +90,11 @@ public class ConstraintChainsReader {
                             String[] canJoinInfo = nodeInfoArr[j].split("#");
                             canJoinNum[(j - 2) / 2] = Integer.parseInt(canJoinInfo[0]);
                             if (canJoinInfo.length > 1) {
-                                dataPercentage[(j - 2) / 2] = Double.valueOf(canJoinInfo[1]);
-                                nullProbability[(j - 2) / 2] = Double.valueOf(canJoinInfo[2]);
-
+                                nullProbability[(j - 2) / 2] = Double.valueOf(canJoinInfo[1]);
                             }
                             cantJoinNum[(j - 2) / 2] = Integer.parseInt(nodeInfoArr[j + 1]);
                         }
-                        PKJoin pkJoin = new PKJoin(primaryKeys, canJoinNum, cantJoinNum, dataPercentage, nullProbability);
+                        PKJoin pkJoin = new PKJoin(primaryKeys, canJoinNum, cantJoinNum, nullProbability);
                         CCNode node = new CCNode(1, pkJoin);
                         nodes.add(node);
 

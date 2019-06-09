@@ -22,32 +22,36 @@ public class ComputeNullProbability {
     /**
      * acquire a dataPercentage and constraintChainNullProbability
      */
-    public ComputeNullProbability(ArrayList<ComputeNode> computeNodes,
+    public ComputeNullProbability(Map<Integer,Double> keyNullProbability,
                                   Map<Integer, ArrayList<long[]>> fkJoinInfo) {
-        int statusSize = (int) Math.pow(2, computeNodes.size()) - 1;
-        int[] checkType = new int[computeNodes.size()];
+        assert fkJoinInfo!=null;
+        int statusSize = (int) Math.pow(2, keyNullProbability.size()) - 1;
+
+        int[] checkType = new int[keyNullProbability.size()];
         checkType[0] = 1;
         for (int i = 1; i < checkType.length; i++) {
             checkType[i] = checkType[i - 1] * 2;
         }
 
-        joinStatusList = new int[statusSize];
-
         //初始化当前的join组信息
-        Map<Integer,Double>fkJoinPercentage=new HashMap<>();
+        joinStatusList = new int[statusSize];
+        Map<Integer,Double>joinTableDataPercentage=new HashMap<>();
         for (int i = 0; i < statusSize; i++) {
             int joinStatus = 0;
-            for (int j = 0; j < computeNodes.size(); j++) {
+            int j=0;
+            for (Integer status : keyNullProbability.keySet()) {
                 if ((i & checkType[j]) == 0) {
-                    joinStatus += computeNodes.get(j).getStatus();
+                    joinStatus += status;
                 } else {
-                    joinStatus += 2 * computeNodes.get(j).getStatus();
+                    joinStatus += 2 * status;
                 }
+                j++;
             }
-            fkJoinPercentage.put(joinStatus,0D);
+            joinTableDataPercentage.put(joinStatus,0D);
             joinStatusList[i] = joinStatus;
         }
-        fkJoinPercentage.put(2*joinStatusList[0],0D);
+        joinTableDataPercentage.put(2*joinStatusList[0],0D);
+
         int allOnes=3*joinStatusList[0];
         long fkJoinInfoSize=0;
         for (ArrayList<long[]> value : fkJoinInfo.values()) {
@@ -56,31 +60,48 @@ public class ComputeNullProbability {
         for (Map.Entry<Integer, ArrayList<long[]>> integerArrayListEntry : fkJoinInfo.entrySet()) {
             int status=integerArrayListEntry.getKey()&allOnes;
             double percentage=(double)integerArrayListEntry.getValue().size()/fkJoinInfoSize;
-            fkJoinPercentage.put(status, percentage+fkJoinPercentage.get(status));
+            joinTableDataPercentage.put(status, percentage+joinTableDataPercentage.get(status));
+        }
+
+        //计算sum dataPercentage
+        Map<Integer,Double> joinTableSumDataPercentage=new HashMap<>();
+        for (Integer status : keyNullProbability.keySet()) {
+            joinTableSumDataPercentage.put(status,0D);
+        }
+        for (Map.Entry<Integer, Double> statusDataPercentage : joinTableDataPercentage.entrySet()) {
+            for (Integer status : joinTableSumDataPercentage.keySet()) {
+                if((statusDataPercentage.getKey()&status)==status){
+                    joinTableSumDataPercentage.put(status,joinTableSumDataPercentage.get(status)
+                            +statusDataPercentage.getValue());
+                }
+            }
         }
 
         P = new double[statusSize][statusSize];
         q = new double[statusSize];
-        matrixA = new double[computeNodes.size()][statusSize];
-        b = new double[computeNodes.size()];
+        matrixA = new double[keyNullProbability.size()][statusSize];
+        b = new double[keyNullProbability.size()];
         for (int i = 0; i < statusSize; i++) {
             double pValue = 0;
             double qValue = 0;
-            for (int j = 0; j < computeNodes.size(); j++) {
+            int j=0;
+            for (Integer status : keyNullProbability.keySet()) {
                 if ((i & checkType[j]) == 0) {
-                    matrixA[j][i] = fkJoinPercentage.get(joinStatusList[i]);
-                    double computePercentage = matrixA[j][i] / computeNodes.get(j).getDataPercentage();
+                    matrixA[j][i] = joinTableDataPercentage.get(joinStatusList[i]);
+                    double computePercentage = matrixA[j][i] / joinTableSumDataPercentage.get(status);
                     pValue += computePercentage * computePercentage;
-                    qValue += computeNodes.get(j).getNullProbability() * computePercentage * computePercentage;
+                    qValue += keyNullProbability.get(status) * computePercentage * computePercentage;
                 } else {
                     matrixA[j][i] = 0;
                 }
+                j++;
             }
             P[i][i] = pValue * 2;
             q[i] = qValue * -2;
         }
-        for (int i = 0; i < computeNodes.size(); i++) {
-            b[i] = computeNodes.get(i).getNullProbability() * computeNodes.get(i).getDataPercentage();
+        int i=0;
+        for (Integer status : keyNullProbability.keySet()) {
+            b[i++] = keyNullProbability.get(status) * joinTableSumDataPercentage.get(status);
         }
     }
 
@@ -143,23 +164,6 @@ public class ComputeNullProbability {
         }
         computeConstraintChainNullProbabilityForEveryStatus.put(2 * joinStatusList[0], 0D);
         return computeConstraintChainNullProbabilityForEveryStatus;
-    }
-
-    public static void main(String[] args) {
-        PropertyConfigurator.configure("running examples/lib/log4j.properties");
-        ArrayList<ComputeNode> computeNodes = new ArrayList<>();
-        computeNodes.add(new ComputeNode(1, 0.20, 0.76));
-        computeNodes.add(new ComputeNode(4, 0.4, 0.40));
-//        computeNodes.add(new ComputeNode(16, 0.75, 0.50));
-//        computeNodes.add(new ComputeNode(64, 0.73, 0.34));
-        ComputeNullProbability computeNullProbability = new ComputeNullProbability(computeNodes,null);
-        System.out.println(computeNullProbability);
-        try {
-            computeNullProbability.computeConstraintChainNullProbabilityForEveryStatus();
-        } catch (JOptimizerException e) {
-            e.printStackTrace();
-        }
-        System.out.println(computeNullProbability);
     }
 }
 

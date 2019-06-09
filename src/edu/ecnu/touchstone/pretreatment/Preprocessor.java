@@ -1,6 +1,5 @@
 package edu.ecnu.touchstone.pretreatment;
 
-import com.joptimizer.exception.JOptimizerException;
 import edu.ecnu.touchstone.constraintchain.*;
 import edu.ecnu.touchstone.queryinstantiation.ComputingThreadPool;
 import edu.ecnu.touchstone.queryinstantiation.Parameter;
@@ -128,16 +127,15 @@ public class Preprocessor {
             }
 
             //nullProbability
-            ArrayList<ComputeNode>computeNodes=new ArrayList<>();
+            Map<Integer, Double> keyNullProbability = new HashMap<>();
             for (ConstraintChain tableConstraintChain : tableConstraintChains) {
                 for (CCNode node : tableConstraintChain.getNodes()) {
-                    if(node.getType()==1){
-                        PKJoin pkJoin=(PKJoin)node.getNode();
-                        double[] nullProbability=pkJoin.getNullProbability();
+                    if (node.getType() == 1) {
+                        PKJoin pkJoin = (PKJoin) node.getNode();
+                        double[] nullProbability = pkJoin.getNullProbability();
                         for (int i = 0; i < nullProbability.length; i++) {
-                            if(nullProbability[i]>0){
-                                computeNodes.add(new ComputeNode(pkJoin.getCanJoinNum()[i],
-                                        pkJoin.getDataPercentage()[i], pkJoin.getNullProbability()[i]));
+                            if (nullProbability[i] > 0) {
+                                keyNullProbability.put(pkJoin.getCanJoinNum()[i], pkJoin.getNullProbability()[i]);
                             }
                         }
                     }
@@ -193,7 +191,7 @@ public class Preprocessor {
 
             TableGeneTemplate tableGeneTemplate = new TableGeneTemplate(tableName, tableSize, pkStr,
                     keys, attributes, tableConstraintChains, referencedKeys, referKeyForeKeyMap,
-                    localParameterMap, attributeMap, shuffleMaxNum, pkvsMaxSize,computeNodes);
+                    localParameterMap, attributeMap, shuffleMaxNum, pkvsMaxSize, keyNullProbability);
             tableGeneTemplateMap.put(tableName, tableGeneTemplate);
         }
 

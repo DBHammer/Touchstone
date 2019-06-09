@@ -7,7 +7,7 @@ public class runDataOnDatabase {
             mysqlConnector.createTables();
             mysqlConnector.loadData();
             mysqlConnector.executeRJoinS(1,700);
-            mysqlConnector.executeRJoinS(2,600);
+            mysqlConnector.executeRJoinS(1,600);
         } catch (SQLException e) {
             e.printStackTrace();
         }

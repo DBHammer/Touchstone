@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
 // the generation template of the table
 // each thread has such an object
@@ -54,9 +55,29 @@ public class TableGeneTemplate implements Serializable {
     // the maximum size of pkvs list (the value of map 'pkJoinInfo', for compression algorithm)
     private int pkvsMaxSize;
 
+    // 每个主键列null的概率
     private Map<Integer,Double> keyNullProbability;
 
+    // Join table中每个status的null概率
     private Map<Integer, Double> tableNullProbability;
+
+    // 参照表中涉及到左外连接的status
+    private Map<String, Integer[]> fksNullInfo;
+
+    // fkJoinTable中非重复值的位置
+    private Map<String, Map<Integer, AtomicInteger>>fksIndex;
+
+    public void setFkTableSize(Map<String, Long> fkTableSize) {
+        this.fkTableSize = fkTableSize;
+    }
+
+    private Map<String, Long> fkTableSize;
+
+    private long currentTableSize;
+
+    public void setFksNullInfo(Map<String, Integer[]> fksNullInfo) {
+        this.fksNullInfo = fksNullInfo;
+    }
 
     public TableGeneTemplate(String tableName, long tableSize, String pkStr, List<Key> keys, List<Attribute> attributes,
                              List<ConstraintChain> constraintChains, List<String> referencedKeys, Map<String, String> referKeyForeKeyMap,
@@ -190,6 +211,15 @@ public class TableGeneTemplate implements Serializable {
             }
         }
 
+        fksIndex=new HashMap<>();
+        for (Entry<String, Map<Integer, ArrayList<long[]>>> joinInfos : fksJoinInfo.entrySet()) {
+            Map<Integer, AtomicInteger>joinIndex=new HashMap<>();
+            for (Entry<Integer, ArrayList<long[]>> joinInfo : joinInfos.getValue().entrySet()) {
+                joinIndex.put(joinInfo.getKey(),new AtomicInteger(joinInfo.getValue().size()));
+            }
+            fksIndex.put(joinInfos.getKey(),joinIndex);
+        }
+
         // we adjust the generation strategy of foreign keys according to
         // the join information of corresponding referenced primary keys
         for (int i = 0; i < shuffleMaxNum; i++) {
@@ -240,6 +270,10 @@ public class TableGeneTemplate implements Serializable {
         this.pkvsMaxSize = template.pkvsMaxSize;
         this.keyNullProbability = template.keyNullProbability;
         this.tableNullProbability=template.tableNullProbability;
+        this.fksIndex=template.fksIndex;
+        this.fkTableSize=template.fkTableSize;
+        this.fksNullInfo=template.fksNullInfo;
+        this.currentTableSize=template.currentTableSize;
         // shallow copy
         this.fksJoinInfo = template.fksJoinInfo;
         init();
@@ -362,15 +396,35 @@ public class TableGeneTemplate implements Serializable {
 
             // in fact, the information here (fksJoinInfo) has been compressed, so it can not be done completely random
             ArrayList<long[]> candidates = null;
+            ArrayList<Integer[]> nullStatuses= null;
             cumulant = (int) (Math.random() * cumulant);
-            for (int i = 0; i < satisfiedFkJoinInfo.size(); i++) {
-                if (cumulant < satisfiedFkJoinInfo.get(i).getSize()) {
-                    candidates = fksJoinInfo.get(entry.getKey()).get(satisfiedFkJoinInfo.get(i).getJoinStatuses());
+            AtomicInteger tempFksIndex = new AtomicInteger(0);
+            long fkTableSize=0;
+            for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
+                if (cumulant < joinStatusesSizePair.getSize()) {
+                    candidates = fksJoinInfo.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
+                    if (fksNullInfo != null) {
+                        tempFksIndex = fksIndex.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
+                        fkTableSize = this.fkTableSize.get(entry.getKey());
+                    }
                     break;
                 }
+                cumulant -= joinStatusesSizePair.getSize();
             }
 
-            long[] fkValues = candidates.get((int) (Math.random() * candidates.size()));
+            long[] fkValues;
+            assert candidates != null;
+            boolean randomOrNot= fksNullInfo==null|| tempFksIndex.get()==0 ||
+                    (tempFksIndex.get()>=this.tableSize-currentTableSize&&
+                            Math.random()>(double)fkTableSize/this.tableSize);
+            if(randomOrNot){
+                fkValues = candidates.get((int) (Math.random() * candidates.size()));
+            }else{
+                int randomIndex=(int)(Math.random()* tempFksIndex.get());
+                fkValues=candidates.get(randomIndex);
+                candidates.set(randomIndex,candidates.get(tempFksIndex.decrementAndGet()));
+                candidates.set(tempFksIndex.get(),fkValues);
+            }
             String[] rpkNames = rpkStrToArray.get(entry.getKey());
             for (int i = 0; i < rpkNames.length; i++) {
                 attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[i]), fkValues[i] + "");
@@ -424,8 +478,39 @@ public class TableGeneTemplate implements Serializable {
                 tuple[keys.size() + i] = dateTimeSdf.format(new Date(Long.parseLong(tuple[keys.size() + i])));
             }
         }
-
+        currentTableSize+=1;
         return tuple;
+    }
+
+
+
+    public Integer[] getNullStatuses(){
+        if(keyNullProbability.size()==0){
+            return null;
+        }else {
+            int statusSize=(int)Math.pow(2,keyNullProbability.size())-1;
+            Integer[] nullStatuses=new Integer[statusSize];
+
+            int[] checkType = new int[keyNullProbability.size()];
+            checkType[0] = 1;
+            for (int i = 1; i < checkType.length; i++) {
+                checkType[i] = checkType[i - 1] * 2;
+            }
+            for (int i = 0; i < statusSize; i++) {
+                int joinStatus = 0;
+                int j=0;
+                for (Integer status : keyNullProbability.keySet()) {
+                    if ((i & checkType[j]) == 0) {
+                        joinStatus += status;
+                    } else {
+                        joinStatus += 2 * status;
+                    }
+                    j++;
+                }
+                nullStatuses[i] = joinStatus;
+            }
+            return nullStatuses;
+        }
     }
 
     // adjust the generation strategy of foreign keys according to the join information of referenced primary keys

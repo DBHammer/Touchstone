@@ -101,6 +101,8 @@ public class Controller {
 		// 'neededPKJoinInfo' -> 'fksJoinInfo'
 		Map<String, Map<Integer, ArrayList<long[]>>> neededPKJoinInfo = new HashMap<String, 
 				Map<Integer, ArrayList<long[]>>>();
+		Map<String, Integer[]> neededNullInfo=new HashMap<>();
+		Map<String,Long> neededTableSize=new HashMap<>();
 
 		// wait until all clients are connected to the server of the data generator
 		waitClientsConnected();
@@ -118,6 +120,8 @@ public class Controller {
 			List<String> referencedKeys = template.getReferencedKeys();
 			Map<String, Map<Integer, ArrayList<long[]>>> fksJoinInfo = 
 					new HashMap<String, Map<Integer, ArrayList<long[]>>>();
+			Map<String, Integer[]> fksNullInfo=new HashMap<>();
+			Map<String, Long> fkTableSize=new HashMap<>();
 			for (int j = 0; j < referencedKeys.size(); j++) {
 				fksJoinInfo.put(referencedKeys.get(j), neededPKJoinInfo.get(referencedKeys.get(j)));
 				int count = pkReferenceCountMap.get(referencedKeys.get(j)) - 1;
@@ -126,8 +130,16 @@ public class Controller {
 					// the controller releases the unnecessary join information
 					neededPKJoinInfo.remove(referencedKeys.get(j));
 				}
+				if(neededNullInfo.get(referencedKeys.get(j))!=null){
+					fksNullInfo.put(referencedKeys.get(j),neededNullInfo.get(referencedKeys.get(j)));
+					fkTableSize.put(referencedKeys.get(j),neededTableSize.get(referencedKeys.get(j)));
+				}
 			}
 			template.setFksJoinInfo(fksJoinInfo);
+			if(fksNullInfo.size()!=0){
+				template.setFksNullInfo(fksNullInfo);
+				template.setFkTableSize(fkTableSize);
+			}
 			logger.info("\n\tThe 'fkJoinInfo' has been set!");
 			logger.info("\n\tThe key set of neededPKJoinInfo is: " + neededPKJoinInfo.keySet());
 			
@@ -154,6 +166,8 @@ public class Controller {
 			logger.info("\n\tStart merging 'pkJoinInfoList' ...");
 			neededPKJoinInfo.put(template.getPkStr(), 
 					JoinInfoMerger.merge(pkJoinInfoList, configurations.getPkvsMaxSize()));
+			neededNullInfo.put(template.getPkStr(),template.getNullStatuses());
+			neededTableSize.put(template.getPkStr(),template.getTableSize());
 			logger.info("\n\tMerge end!");
 			logger.info("\n\tThe key set of neededPKJoinKeyInfo is: " + neededPKJoinInfo.keySet());
 
@@ -181,6 +195,8 @@ public class Controller {
 		}
 	logger.info("\n\tAll data generators startup successful!");
 	}
+
+
 
 	// it's called by 'ControllerServerHandler' when receiving a 'pkJoinInfo'
 	public static synchronized void receivePkJoinInfo(Map<Integer, ArrayList<long[]>> pkJoinInfo) {

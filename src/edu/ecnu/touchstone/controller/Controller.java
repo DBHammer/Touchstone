@@ -120,7 +120,7 @@ public class Controller {
 			List<String> referencedKeys = template.getReferencedKeys();
 			Map<String, Map<Integer, ArrayList<long[]>>> fksJoinInfo = 
 					new HashMap<String, Map<Integer, ArrayList<long[]>>>();
-			Map<String, Integer[]> fksNullInfo=new HashMap<>();
+			Map<String, Map<Integer, Integer[]>> fksNullInfo=new HashMap<>();
 			Map<String, Long> fkTableSize=new HashMap<>();
 			for (int j = 0; j < referencedKeys.size(); j++) {
 				fksJoinInfo.put(referencedKeys.get(j), neededPKJoinInfo.get(referencedKeys.get(j)));
@@ -131,7 +131,14 @@ public class Controller {
 					neededPKJoinInfo.remove(referencedKeys.get(j));
 				}
 				if(neededNullInfo.get(referencedKeys.get(j))!=null){
-					fksNullInfo.put(referencedKeys.get(j),neededNullInfo.get(referencedKeys.get(j)));
+					Integer[] statuses=neededNullInfo.get(referencedKeys.get(j));
+					int sum=0;
+					for (Integer status : statuses) {
+						sum+=status;
+					}
+					Map<Integer, Integer[]> statusesIndex= new HashMap<>();
+					statusesIndex.put(sum,statuses);
+					fksNullInfo.put(referencedKeys.get(j),statusesIndex);
 					fkTableSize.put(referencedKeys.get(j),neededTableSize.get(referencedKeys.get(j)));
 				}
 			}

@@ -187,6 +187,7 @@ class DataGenerationThread implements Runnable {
 					bw.write(sb.toString());
 					sb.setLength(0);
 				}
+				template.printFkIndex();
 				DataGenerator.addPkJoinInfo(template.getPkJoinInfo());
 				bw.close();
 			}

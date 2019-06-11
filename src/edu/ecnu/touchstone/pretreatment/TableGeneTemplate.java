@@ -56,33 +56,35 @@ public class TableGeneTemplate implements Serializable {
     private int pkvsMaxSize;
 
     // 每个主键列null的概率
-    private Map<Integer,Double> keyNullProbability;
+    private Map<Integer, Double> keyNullProbability;
 
     // Join table中每个status的null概率
     private Map<Integer, Double> tableNullProbability;
 
     // 参照表中涉及到左外连接的status
-    private Map<String, Integer[]> fksNullInfo;
+    private Map<String, Map<Integer, Integer[]>> fksNullInfo;
 
     // fkJoinTable中非重复值的位置
-    private Map<String, Map<Integer, AtomicInteger>>fksIndex;
+    private Map<String, Map<Integer, AtomicInteger>> fksIndex;
+
+    // 参照表的数据大小
+    private Map<String, Long> fkTableSize;
+
+    private long currentTableSize;
+
+    public void setFksNullInfo(Map<String, Map<Integer, Integer[]>> fksNullInfo) {
+        this.fksNullInfo = fksNullInfo;
+    }
 
     public void setFkTableSize(Map<String, Long> fkTableSize) {
         this.fkTableSize = fkTableSize;
     }
 
-    private Map<String, Long> fkTableSize;
-
-    private long currentTableSize;
-
-    public void setFksNullInfo(Map<String, Integer[]> fksNullInfo) {
-        this.fksNullInfo = fksNullInfo;
-    }
 
     public TableGeneTemplate(String tableName, long tableSize, String pkStr, List<Key> keys, List<Attribute> attributes,
                              List<ConstraintChain> constraintChains, List<String> referencedKeys, Map<String, String> referKeyForeKeyMap,
                              Map<Integer, Parameter> parameterMap, Map<String, Attribute> attributeMap, int shuffleMaxNum,
-                             int pkvsMaxSize, Map<Integer,Double> keyNullProbability) {
+                             int pkvsMaxSize, Map<Integer, Double> keyNullProbability) {
         super();
         this.tableName = tableName;
         this.tableSize = tableSize;
@@ -211,13 +213,13 @@ public class TableGeneTemplate implements Serializable {
             }
         }
 
-        fksIndex=new HashMap<>();
+        fksIndex = new HashMap<>();
         for (Entry<String, Map<Integer, ArrayList<long[]>>> joinInfos : fksJoinInfo.entrySet()) {
-            Map<Integer, AtomicInteger>joinIndex=new HashMap<>();
+            Map<Integer, AtomicInteger> joinIndex = new HashMap<>();
             for (Entry<Integer, ArrayList<long[]>> joinInfo : joinInfos.getValue().entrySet()) {
-                joinIndex.put(joinInfo.getKey(),new AtomicInteger(joinInfo.getValue().size()));
+                joinIndex.put(joinInfo.getKey(), new AtomicInteger(joinInfo.getValue().size()));
             }
-            fksIndex.put(joinInfos.getKey(),joinIndex);
+            fksIndex.put(joinInfos.getKey(), joinIndex);
         }
 
         // we adjust the generation strategy of foreign keys according to
@@ -269,11 +271,11 @@ public class TableGeneTemplate implements Serializable {
         this.shuffleMaxNum = template.shuffleMaxNum;
         this.pkvsMaxSize = template.pkvsMaxSize;
         this.keyNullProbability = template.keyNullProbability;
-        this.tableNullProbability=template.tableNullProbability;
-        this.fksIndex=template.fksIndex;
-        this.fkTableSize=template.fkTableSize;
-        this.fksNullInfo=template.fksNullInfo;
-        this.currentTableSize=template.currentTableSize;
+        this.tableNullProbability = template.tableNullProbability;
+        this.fksIndex = template.fksIndex;
+        this.fkTableSize = template.fkTableSize;
+        this.fksNullInfo = template.fksNullInfo;
+        this.currentTableSize = template.currentTableSize;
         // shallow copy
         this.fksJoinInfo = template.fksJoinInfo;
         init();
@@ -396,34 +398,38 @@ public class TableGeneTemplate implements Serializable {
 
             // in fact, the information here (fksJoinInfo) has been compressed, so it can not be done completely random
             ArrayList<long[]> candidates = null;
-            ArrayList<Integer[]> nullStatuses= null;
             cumulant = (int) (Math.random() * cumulant);
             AtomicInteger tempFksIndex = new AtomicInteger(0);
-            long fkTableSize=0;
+            long fkTableSize = 0;
             for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
                 if (cumulant < joinStatusesSizePair.getSize()) {
                     candidates = fksJoinInfo.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
+
+                    //todo 判断条件补全
                     if (fksNullInfo != null) {
                         tempFksIndex = fksIndex.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
                         fkTableSize = this.fkTableSize.get(entry.getKey());
                     }
                     break;
+
                 }
                 cumulant -= joinStatusesSizePair.getSize();
             }
 
             long[] fkValues;
             assert candidates != null;
-            boolean randomOrNot= fksNullInfo==null|| tempFksIndex.get()==0 ||
-                    (tempFksIndex.get()>=this.tableSize-currentTableSize&&
-                            Math.random()>(double)fkTableSize/this.tableSize);
-            if(randomOrNot){
+            boolean notExistsNullInfo = fksNullInfo == null;
+            boolean tempFksIndexGequal0 = tempFksIndex.get() == 0;
+            boolean valueEnough = tempFksIndex.get() < this.tableSize - currentTableSize;
+            boolean randomOrNot = Math.random() > (double) fkTableSize / this.tableSize;
+
+            if (notExistsNullInfo || tempFksIndexGequal0 || (valueEnough && randomOrNot)) {
                 fkValues = candidates.get((int) (Math.random() * candidates.size()));
-            }else{
-                int randomIndex=(int)(Math.random()* tempFksIndex.get());
-                fkValues=candidates.get(randomIndex);
-                candidates.set(randomIndex,candidates.get(tempFksIndex.decrementAndGet()));
-                candidates.set(tempFksIndex.get(),fkValues);
+            } else {
+                int randomIndex = (int) (Math.random() * tempFksIndex.get());
+                fkValues = candidates.get(randomIndex);
+                candidates.set(randomIndex, candidates.get(tempFksIndex.decrementAndGet()));
+                candidates.set(tempFksIndex.get(), fkValues);
             }
             String[] rpkNames = rpkStrToArray.get(entry.getKey());
             for (int i = 0; i < rpkNames.length; i++) {
@@ -453,22 +459,28 @@ public class TableGeneTemplate implements Serializable {
         ArrayList<long[]> candidates = pkJoinInfo.get(pkJoinStatuses);
         long size = pkJoinInfoSizeMap.get(pkJoinStatuses) + 1;
         pkJoinInfoSizeMap.put(pkJoinStatuses, size);
-        if (candidates.size() < pkvsMaxSize) {
-            candidates.add(pkValues);
-        } else {
-            if (keyNullProbability.size() == 0) {
+        if (keyNullProbability.size() == 0) {
+            if (candidates.size() < pkvsMaxSize) {
+                candidates.add(pkValues);
+            } else {
                 if (Math.random() < ((double) pkvsMaxSize / size)) {
                     candidates.set((int) (Math.random() * candidates.size()), pkValues);
                 }
-            } else {
-                if (tableNullProbability == null) {
+            }
+        } else {
+            if (tableNullProbability == null) {
+                if(candidates.size() < pkvsMaxSize){
+                    candidates.add(pkValues);
+                }else {
                     computeNullProbability();
                 }
-                if (Math.random() > tableNullProbability.get(nullStatus)) {
-                    pkJoinInfo.get(pkJoinStatuses).add(pkValues);
+            }else {
+                if (Math.random() > tableNullProbability.get(pkJoinStatuses & nullStatus)) {
+                    candidates.add(pkValues);
                 }
             }
         }
+
 
         // for Date and DateTime typed attributes, convert their values from long form to string form
         for (int i = 0; i < attributes.size(); i++) {
@@ -478,18 +490,25 @@ public class TableGeneTemplate implements Serializable {
                 tuple[keys.size() + i] = dateTimeSdf.format(new Date(Long.parseLong(tuple[keys.size() + i])));
             }
         }
-        currentTableSize+=1;
+        currentTableSize += 1;
         return tuple;
     }
 
+    public void printFkIndex() {
+        for (Entry<String, Map<Integer, AtomicInteger>> stringMapEntry : fksIndex.entrySet()) {
+            for (Entry<Integer, AtomicInteger> integerAtomicIntegerEntry : stringMapEntry.getValue().entrySet()) {
+                System.out.println(integerAtomicIntegerEntry.getKey() + "_" + integerAtomicIntegerEntry.getValue());
+            }
+        }
+    }
 
 
-    public Integer[] getNullStatuses(){
-        if(keyNullProbability.size()==0){
+    public Integer[] getNullStatuses() {
+        if (keyNullProbability.size() == 0) {
             return null;
-        }else {
-            int statusSize=(int)Math.pow(2,keyNullProbability.size())-1;
-            Integer[] nullStatuses=new Integer[statusSize];
+        } else {
+            int statusSize = (int) Math.pow(2, keyNullProbability.size()) - 1;
+            Integer[] nullStatuses = new Integer[statusSize];
 
             int[] checkType = new int[keyNullProbability.size()];
             checkType[0] = 1;
@@ -498,7 +517,7 @@ public class TableGeneTemplate implements Serializable {
             }
             for (int i = 0; i < statusSize; i++) {
                 int joinStatus = 0;
-                int j=0;
+                int j = 0;
                 for (Integer status : keyNullProbability.keySet()) {
                     if ((i & checkType[j]) == 0) {
                         joinStatus += status;
@@ -619,6 +638,7 @@ public class TableGeneTemplate implements Serializable {
         return rules;
     }
 
+
     // get the 'probability' of can-join situation (join status is True) after the adjustment
     private float getProbability(List<FKJoin> fkJoinNodes, List<FKJoinAdjustRule> rules, int order) {
         // every rule in 'rules' consumes partial 'true probability' or 'false probability' of current 'FKJoin' node
@@ -686,7 +706,8 @@ public class TableGeneTemplate implements Serializable {
             }
         }
     }
-    private void computeNullProbability(){
+
+    private void computeNullProbability() {
         ComputeNullProbability computeNullProbability = new ComputeNullProbability(keyNullProbability, pkJoinInfo);
         try {
             tableNullProbability = computeNullProbability.computeConstraintChainNullProbabilityForEveryStatus();
@@ -722,7 +743,7 @@ public class TableGeneTemplate implements Serializable {
     }
 
     public Map<Integer, ArrayList<long[]>> getPkJoinInfo() {
-        if(keyNullProbability.size()!=0&&tableNullProbability==null){
+        if (keyNullProbability.size() != 0 && tableNullProbability == null) {
             computeNullProbability();
         }
         return pkJoinInfo;

@@ -145,7 +145,6 @@ public class Controller {
 			template.setFksJoinInfo(fksJoinInfo);
 			if(fksNullInfo.size()!=0){
 				template.setFksNullInfo(fksNullInfo);
-				template.setFkTableSize(fkTableSize);
 			}
 			logger.info("\n\tThe 'fkJoinInfo' has been set!");
 			logger.info("\n\tThe key set of neededPKJoinInfo is: " + neededPKJoinInfo.keySet());

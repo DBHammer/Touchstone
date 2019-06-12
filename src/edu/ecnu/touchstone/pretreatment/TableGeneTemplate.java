@@ -65,19 +65,14 @@ public class TableGeneTemplate implements Serializable {
     private Map<String, Map<Integer, Integer[]>> fksNullInfo;
 
     // fkJoinTable中非重复值的位置
-    private Map<String, Map<Integer, AtomicInteger>> fksIndex;
+    private Map<String, List<JoinStatusesSizePair>> fksJoinIndex;
 
-    // 参照表的数据大小
-    private Map<String, Long> fkTableSize;
+    private Map<String,Integer> fkIndexSize;
 
     private long currentTableSize;
 
     public void setFksNullInfo(Map<String, Map<Integer, Integer[]>> fksNullInfo) {
         this.fksNullInfo = fksNullInfo;
-    }
-
-    public void setFkTableSize(Map<String, Long> fkTableSize) {
-        this.fkTableSize = fkTableSize;
     }
 
 
@@ -167,8 +162,21 @@ public class TableGeneTemplate implements Serializable {
                 fksJoinInfoSizeMap.get(entry.getKey()).add(
                         new JoinStatusesSizePair(entry2.getKey(), entry2.getValue().size()));
             }
+            fksJoinInfoSizeMap.get(entry.getKey()).sort(Comparator.comparing(JoinStatusesSizePair::getJoinStatuses));
         }
         logger.debug("\nThe fksJoinInfoSizeMap is: " + fksJoinInfoSizeMap);
+
+        fksJoinIndex = new HashMap<>();
+        fkIndexSize = new HashMap<>();
+        for (Entry<String, Map<Integer, ArrayList<long[]>>> joinInfos : fksJoinInfo.entrySet()) {
+            List<JoinStatusesSizePair> joinIndex = new ArrayList<>(fksJoinInfoSizeMap.get(joinInfos.getKey()));
+            int size=0;
+            for (JoinStatusesSizePair index : joinIndex) {
+                size+=index.getSize();
+            }
+            fksJoinIndex.put(joinInfos.getKey(), joinIndex);
+            fkIndexSize.put(joinInfos.getKey(),size);
+        }
 
         pkJoinInfo = new HashMap<Integer, ArrayList<long[]>>();
         pkJoinInfoSizeMap = new HashMap<Integer, Long>();
@@ -213,14 +221,6 @@ public class TableGeneTemplate implements Serializable {
             }
         }
 
-        fksIndex = new HashMap<>();
-        for (Entry<String, Map<Integer, ArrayList<long[]>>> joinInfos : fksJoinInfo.entrySet()) {
-            Map<Integer, AtomicInteger> joinIndex = new HashMap<>();
-            for (Entry<Integer, ArrayList<long[]>> joinInfo : joinInfos.getValue().entrySet()) {
-                joinIndex.put(joinInfo.getKey(), new AtomicInteger(joinInfo.getValue().size()));
-            }
-            fksIndex.put(joinInfos.getKey(), joinIndex);
-        }
 
         // we adjust the generation strategy of foreign keys according to
         // the join information of corresponding referenced primary keys
@@ -272,8 +272,7 @@ public class TableGeneTemplate implements Serializable {
         this.pkvsMaxSize = template.pkvsMaxSize;
         this.keyNullProbability = template.keyNullProbability;
         this.tableNullProbability = template.tableNullProbability;
-        this.fksIndex = template.fksIndex;
-        this.fkTableSize = template.fkTableSize;
+        this.fksJoinIndex = template.fksJoinIndex;
         this.fksNullInfo = template.fksNullInfo;
         this.currentTableSize = template.currentTableSize;
         // shallow copy
@@ -375,11 +374,12 @@ public class TableGeneTemplate implements Serializable {
         // currently, we don't consider the situation of multiple assignments
         //     (under mixed reference) to the foreign key
         // TODO
-        for (Entry<String, Integer> entry : fkJoinStatusesMap.entrySet()) {
-            int numCount = entry.getValue();
-
-            ArrayList<JoinStatusesSizePair> joinStatusesSizePairs = fksJoinInfoSizeMap.get(entry.getKey());
+        for (Entry<String, Integer> tupleJoinStatus : fkJoinStatusesMap.entrySet()) {
+            int numCount = tupleJoinStatus.getValue();
+            ArrayList<JoinStatusesSizePair> joinStatusesSizePairs = fksJoinInfoSizeMap.get(tupleJoinStatus.getKey());
+            List<JoinStatusesSizePair> joinIndexesSizePairs= fksJoinIndex.get(tupleJoinStatus.getKey());
             satisfiedFkJoinInfo.clear();
+            List<JoinStatusesSizePair> satisfiedFkJoinIndex=new ArrayList<>();
             // accumulative (*) size
             int cumulant = 0;
             for (int i = 0; i < joinStatusesSizePairs.size(); i++) {
@@ -387,51 +387,45 @@ public class TableGeneTemplate implements Serializable {
                     cumulant += joinStatusesSizePairs.get(i).getSize();
                     satisfiedFkJoinInfo.add(new JoinStatusesSizePair(
                             joinStatusesSizePairs.get(i).getJoinStatuses(), cumulant));
+                    if(joinIndexesSizePairs.get(i).getSize()!=0){
+                        satisfiedFkJoinIndex.add(joinIndexesSizePairs.get(i));
+                    }
                 }
             }
 
             if (cumulant == 0) {
                 logger.error("\n\tfkMissCount: " + Statistic.fkMissCount.incrementAndGet() +
-                        ", referenced primary key: " + entry.getKey() + ", numCount: " + numCount);
+                        ", referenced primary key: " + tupleJoinStatus.getKey() + ", numCount: " + numCount);
                 return tuple;
             }
-
-            // in fact, the information here (fksJoinInfo) has been compressed, so it can not be done completely random
-            ArrayList<long[]> candidates = null;
-            cumulant = (int) (Math.random() * cumulant);
-            AtomicInteger tempFksIndex = new AtomicInteger(0);
-            long fkTableSize = 0;
-            for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
-                if (cumulant < joinStatusesSizePair.getSize()) {
-                    candidates = fksJoinInfo.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
-
-                    //todo 判断条件补全
-                    if (fksNullInfo != null) {
-                        tempFksIndex = fksIndex.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
-                        fkTableSize = this.fkTableSize.get(entry.getKey());
-                    }
-                    break;
-
-                }
-                cumulant -= joinStatusesSizePair.getSize();
-            }
-
-            long[] fkValues;
-            assert candidates != null;
-            boolean notExistsNullInfo = fksNullInfo == null;
-            boolean tempFksIndexGequal0 = tempFksIndex.get() == 0;
-            boolean valueEnough = tempFksIndex.get() < this.tableSize - currentTableSize;
-            boolean randomOrNot = Math.random() > (double) fkTableSize / this.tableSize;
-
-            if (notExistsNullInfo || tempFksIndexGequal0 || (valueEnough && randomOrNot)) {
-                fkValues = candidates.get((int) (Math.random() * candidates.size()));
-            } else {
-                int randomIndex = (int) (Math.random() * tempFksIndex.get());
+            long[] fkValues = new long[0];
+            boolean existFkNotJoin=satisfiedFkJoinIndex.size() != 0;
+            //这里需要找一个合适的判断
+            boolean randomOrNot = Math.random() >
+                    (double)fkIndexSize.get(tupleJoinStatus.getKey()) /(this.tableSize - currentTableSize);
+            if (existFkNotJoin && !randomOrNot) {
+                JoinStatusesSizePair fkJoinIndexInfo=satisfiedFkJoinIndex
+                        .get((int)(Math.random()*satisfiedFkJoinIndex.size()));
+                ArrayList<long[]> candidates = fksJoinInfo.get(tupleJoinStatus.getKey()).
+                        get(fkJoinIndexInfo.getJoinStatuses());
+                int randomIndex = (int) (Math.random() * fkJoinIndexInfo.getSize());
                 fkValues = candidates.get(randomIndex);
-                candidates.set(randomIndex, candidates.get(tempFksIndex.decrementAndGet()));
-                candidates.set(tempFksIndex.get(), fkValues);
+                candidates.set(randomIndex, candidates.get(fkJoinIndexInfo.subAndGetSize()));
+                candidates.set(fkJoinIndexInfo.getSize(), fkValues);
+                fkIndexSize.put(tupleJoinStatus.getKey(),fkIndexSize.get(tupleJoinStatus.getKey())-1);
+            }else {
+                // in fact, the information here (fksJoinInfo) has been compressed, so it can not be done completely random
+                cumulant = (int) (Math.random() * cumulant);
+                for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
+                    if (cumulant < joinStatusesSizePair.getSize()) {
+                        ArrayList<long[]> candidates = fksJoinInfo.get(tupleJoinStatus.getKey()).
+                                get(joinStatusesSizePair.getJoinStatuses());
+                        fkValues = candidates.get((int) (Math.random() * candidates.size()));
+                        break;
+                    }
+                }
             }
-            String[] rpkNames = rpkStrToArray.get(entry.getKey());
+            String[] rpkNames = rpkStrToArray.get(tupleJoinStatus.getKey());
             for (int i = 0; i < rpkNames.length; i++) {
                 attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[i]), fkValues[i] + "");
             }
@@ -492,14 +486,6 @@ public class TableGeneTemplate implements Serializable {
         }
         currentTableSize += 1;
         return tuple;
-    }
-
-    public void printFkIndex() {
-        for (Entry<String, Map<Integer, AtomicInteger>> stringMapEntry : fksIndex.entrySet()) {
-            for (Entry<Integer, AtomicInteger> integerAtomicIntegerEntry : stringMapEntry.getValue().entrySet()) {
-                System.out.println(integerAtomicIntegerEntry.getKey() + "_" + integerAtomicIntegerEntry.getValue());
-            }
-        }
     }
 
 
@@ -862,6 +848,11 @@ class JoinStatusesSizePair {
     public int getSize() {
         return size;
     }
+
+    public int subAndGetSize(){
+        return --size;
+    }
+
 
     @Override
     public String toString() {

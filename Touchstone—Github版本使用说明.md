@@ -223,6 +223,7 @@ Touchstone有两个输入数据文件，分别包含了数据库Schema信息（�
 下面会根据TPC-H的一些几个Query示例输入来介绍输入数据的具体格式。
 
 1. TPC-H的Query 1在MySQL上的物理查询树
+
    ![TPC-H_Query-1](http://ww3.sinaimg.cn/large/006tNc79ly1g3zap9kpbzj30d408naal.jpg)
 
 对应的约束链为：
@@ -240,6 +241,7 @@ Touchstone有两个输入数据文件，分别包含了数据库Schema信息（�
   + "0.985899"是选择率（=5916591/6001215）。
 
 2. TPC-H的Query 3在MySQL上的物理查询树 
+
    ![TPC-H_Query-3](http://ww2.sinaimg.cn/large/006tNc79ly1g3zaqvbz1pj30d40cv0t3.jpg)
 
 对应的约束链为： 

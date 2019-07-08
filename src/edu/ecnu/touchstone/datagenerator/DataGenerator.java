@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -49,6 +50,8 @@ public class DataGenerator implements Runnable {
 	// store all 'pkJoinInfo's maintained by data generation threads
 	// firstly, merge locally, then send to controller
 	private static List<Map<Integer, ArrayList<long[]>>> pkJoinInfoList = null;
+
+	private static Map<Integer,Long> pkJoinInfoFileTotalSize =null;
 	
 	// control the time point of merging the join information of the primary key (pkJoinInfoList)
 	private static CountDownLatch countDownLatch = null;
@@ -57,6 +60,7 @@ public class DataGenerator implements Runnable {
 	public void run() {
 
 		pkJoinInfoList = new ArrayList<Map<Integer, ArrayList<long[]>>>();
+		pkJoinInfoFileTotalSize =new HashMap<>();
 		int threadNum = configurations.getDataGeneratorThreadNums().get(generatorId);
 		countDownLatch = new CountDownLatch(threadNum);
 
@@ -71,7 +75,11 @@ public class DataGenerator implements Runnable {
 			}
 
 			logger.info("\n\tStart merging 'pkJoinInfoList' ...");
-			client.send(JoinInfoMerger.merge(pkJoinInfoList, configurations.getPkvsMaxSize()));
+			if(pkJoinInfoFileTotalSize.size()==0){
+				client.send(JoinInfoMerger.merge(pkJoinInfoList, configurations.getPkvsMaxSize()));
+			}else {
+				client.send(JoinInfoMerger.merge(pkJoinInfoList, pkJoinInfoFileTotalSize));
+			}
 			logger.info("\n\tMerge end!");
 			logger.info("\n\tThe fkMissCount: " + Statistic.fkMissCount);
 
@@ -99,7 +107,7 @@ public class DataGenerator implements Runnable {
 			templateQueues.add(new ArrayBlockingQueue<TableGeneTemplate>(1));
 			int threadId = count + i;
 			new Thread(new DataGenerationThread(templateQueues.get(i), threadId, allThreadNum, 
-					configurations.getDataOutputPath())).start();
+					configurations.getDataOutputPath(),configurations.getJoinTableOutputPath())).start();
 		}
 		logger.info("\n\tAll data generation threads startup successful!");
 	}
@@ -136,6 +144,19 @@ public class DataGenerator implements Runnable {
 		pkJoinInfoList.add(pkJoinInfo);
 		countDownLatch.countDown();
 	}
+
+	static synchronized void addOuterJoinInfo(Map<Integer, ArrayList<long[]>> pkJoinInfo,
+											  Map<Integer, Long> pkJoinInfoFileSize){
+		pkJoinInfoList.add(pkJoinInfo);
+		for (Integer status : pkJoinInfoFileSize.keySet()) {
+			if(!pkJoinInfoFileTotalSize.containsKey(status)){
+				pkJoinInfoFileTotalSize.put(status,pkJoinInfoFileSize.get(status));
+			}else {
+				pkJoinInfoFileTotalSize.put(status,pkJoinInfoFileSize.get(status)+pkJoinInfoFileTotalSize.get(status));
+			}
+		}
+		countDownLatch.countDown();
+	}
 	
 	// test
 	public static void main(String[] args) {
@@ -156,14 +177,16 @@ class DataGenerationThread implements Runnable {
 	// the number of all threads in all data generators
 	private int threadNum;
 	private String dataOutputPath = null;
+	private String joinTableOutputPath = null;
 
 	public DataGenerationThread(BlockingQueue<TableGeneTemplate> templateQueue, int threadId,
-			int threadNum, String dataOutputPath) {
+			int threadNum, String dataOutputPath, String joinTableOutPath) {
 		super();
 		this.templateQueue = templateQueue;
 		this.threadId = threadId;
 		this.threadNum = threadNum;
 		this.dataOutputPath = dataOutputPath;
+		this.joinTableOutputPath=joinTableOutPath;
 	}
 
 	@Override
@@ -176,6 +199,10 @@ class DataGenerationThread implements Runnable {
 				File outputFile = new File(dataOutputPath + "//" + template.getTableName() + "_" + threadId + ".txt");
 				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new 
 						FileOutputStream(outputFile), "UTF-8"));
+				if(template.hasLeftOuterJoin()){
+					template.setWriteOutJoinTable(joinTableOutputPath+ "//" +
+							template.getTableName() + "_" + threadId + ".txt");
+				}
 				for (long uniqueNum = threadId; uniqueNum < tableSize; uniqueNum += threadNum) {
 					String[] tuple = template.geneTuple(uniqueNum);
 					for (int i = 0; i < tuple.length - 1; i++) {
@@ -187,8 +214,13 @@ class DataGenerationThread implements Runnable {
 					bw.write(sb.toString());
 					sb.setLength(0);
 				}
-				DataGenerator.addPkJoinInfo(template.getPkJoinInfo());
+				if(template.hasLeftOuterJoin()){
+					DataGenerator.addOuterJoinInfo(template.getPkJoinInfo(),template.getPkJoinInfoFileSize());
+				}else {
+					DataGenerator.addPkJoinInfo(template.getPkJoinInfo());
+				}
 				bw.close();
+				template.closeWriteOutJoinTable();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

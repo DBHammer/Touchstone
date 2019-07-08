@@ -1,5 +1,6 @@
 package edu.ecnu.touchstone.pretreatment;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import edu.ecnu.touchstone.outerjoin.WriteOutJoinTable;
 import org.apache.log4j.Logger;
 
 import edu.ecnu.touchstone.constraintchain.CCNode;
@@ -71,7 +73,7 @@ public class TableGeneTemplate implements Serializable{
 	public TableGeneTemplate(String tableName, long tableSize, String pkStr, List<Key> keys, List<Attribute> attributes,
 			List<ConstraintChain> constraintChains, List<String> referencedKeys, Map<String, String> referKeyForeKeyMap,
 			Map<Integer, Parameter> parameterMap, Map<String, Attribute> attributeMap, int shuffleMaxNum,
-			int pkvsMaxSize) {
+			int pkvsMaxSize, Map<Integer,Double> leftJoinNullProbability,Map<String,Integer> fkJoinStatus) {
 		super();
 		this.tableName = tableName;
 		this.tableSize = tableSize;
@@ -85,6 +87,11 @@ public class TableGeneTemplate implements Serializable{
 		this.attributeMap = attributeMap;
 		this.shuffleMaxNum = shuffleMaxNum;
 		this.pkvsMaxSize = pkvsMaxSize;
+		this.leftJoinNullProbability=leftJoinNullProbability;
+		this.fkJoinStatus=fkJoinStatus;
+		for (Integer status : leftJoinNullProbability.keySet()) {
+			leftOuterJoinTag+=status;
+		}
 	}
 
 	// map: Key: the string representation of referenced primary key (support mixed reference)
@@ -134,6 +141,51 @@ public class TableGeneTemplate implements Serializable{
 	private transient Logger logger = null;
 	private transient SimpleDateFormat dateSdf = null;
 	private transient SimpleDateFormat dateTimeSdf = null;
+
+	private int leftOuterJoinTag;
+
+	private Map<Integer,Double> leftJoinNullProbability;
+
+	private WriteOutJoinTable writeOutJoinTable = null;
+
+	private Map<Integer, Long> pkJoinInfoFileSize = null;
+
+	private Map<String, Integer> fkJoinStatus;
+
+	private Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability;
+
+	public void setFkLeftJoinNullProbability(Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability) {
+		this.fkLeftJoinNullProbability = fkLeftJoinNullProbability;
+	}
+
+	public int getLeftOuterJoinTag() {
+		return leftOuterJoinTag;
+	}
+
+	public boolean hasLeftOuterJoin(){
+		return leftJoinNullProbability!=null;
+	}
+
+	public Map<Integer, Double> getLeftJoinNullProbability() {
+		return leftJoinNullProbability;
+	}
+
+	public void setWriteOutJoinTable(String joinTableOutputPath) {
+		try {
+			this.writeOutJoinTable = new WriteOutJoinTable(joinTableOutputPath,pkStrArr.length);
+		} catch (IOException e) {
+			logger.error(e);
+			System.exit(0);
+		}
+	}
+
+	public void closeWriteOutJoinTable() throws IOException {
+		writeOutJoinTable.close();
+	}
+
+	public Map<Integer, Long> getPkJoinInfoFileSize() {
+		return pkJoinInfoFileSize;
+	}
 
 	public void init() {
 		logger = Logger.getLogger(Touchstone.class);
@@ -251,6 +303,12 @@ public class TableGeneTemplate implements Serializable{
 		this.pkvsMaxSize = template.pkvsMaxSize;
 		// shallow copy
 		this.fksJoinInfo = template.fksJoinInfo;
+		this.leftOuterJoinTag=template.leftOuterJoinTag;
+		this.leftJoinNullProbability= template.leftJoinNullProbability;
+		this.fkJoinStatus=template.fkJoinStatus;
+		this.fkLeftJoinNullProbability=template.fkLeftJoinNullProbability;
+		this.writeOutJoinTable= null;
+		this.pkJoinInfoFileSize= null;
 		init();
 	}
 
@@ -402,7 +460,21 @@ public class TableGeneTemplate implements Serializable{
 			candidates.add(pkValues);
 		} else {
 			if (Math.random() < ((double)pkvsMaxSize / size)) {
-				candidates.set((int)(Math.random() * candidates.size()), pkValues);
+				pkValues = candidates.set((int)(Math.random() * candidates.size()), pkValues);
+			}
+			if(leftOuterJoinTag!=0){
+				try {
+					int fileStatus=pkJoinStatuses&(3*leftOuterJoinTag);
+					if(fileStatus!=2*leftOuterJoinTag){
+						if (!pkJoinInfoFileSize.containsKey(pkJoinStatuses)) {
+							pkJoinInfoFileSize.put(pkJoinStatuses, 0L);
+						}
+						pkJoinInfoFileSize.put(pkJoinStatuses,pkJoinInfoFileSize.get(pkJoinStatuses)-1);
+						writeOutJoinTable.write(fileStatus,pkValues);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -664,6 +736,10 @@ public class TableGeneTemplate implements Serializable{
 			}
 		}
 		return count;
+	}
+
+	public Map<String, Integer> getFkJoinStatus() {
+		return fkJoinStatus;
 	}
 }
 

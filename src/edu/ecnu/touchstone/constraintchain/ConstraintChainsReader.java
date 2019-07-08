@@ -85,22 +85,31 @@ public class ConstraintChainsReader {
 						}
 						int[] canJoinNum = new int[(nodeInfoArr.length - 2) / 2];
 						int[] cantJoinNum = new int[(nodeInfoArr.length - 2) / 2];
-						for(int j = 2; j < nodeInfoArr.length; j += 2) {	
-							canJoinNum[(j - 2) / 2] = Integer.parseInt(nodeInfoArr[j]);
+						double[] leftOuterJoinNullProbability=null;
+						for(int j = 2; j < nodeInfoArr.length; j += 2) {
+							String[] pkCanJoinInfo=nodeInfoArr[j].split("#");
+							canJoinNum[(j - 2) / 2] = Integer.parseInt(pkCanJoinInfo[0]);
+							if(pkCanJoinInfo.length>1){
+								if(leftOuterJoinNullProbability==null){
+									leftOuterJoinNullProbability=new double[(nodeInfoArr.length - 2) / 2];
+								}
+								leftOuterJoinNullProbability[(j - 2) / 2]=Double.parseDouble(pkCanJoinInfo[1]);
+							}
 							cantJoinNum[(j - 2) / 2] = Integer.parseInt(nodeInfoArr[j + 1]);
 						}
-						PKJoin pkJoin = new PKJoin(primaryKeys, canJoinNum, cantJoinNum);
+						PKJoin pkJoin = new PKJoin(primaryKeys, canJoinNum, cantJoinNum,leftOuterJoinNullProbability);
 						CCNode node = new CCNode(1, pkJoin);
 						nodes.add(node);
 					
 					// FKJoin node
-					} else if(nodeInfoArr[0].equals("2") && nodeInfoArr.length == 6) {
+					} else if((nodeInfoArr[0].equals("2") || nodeInfoArr[0].equals("3")) && nodeInfoArr.length == 6) {
 						String[] foreignKeys = nodeInfoArr[1].split("#");
 						float probability = Float.parseFloat(nodeInfoArr[2]);
 						String[] primakryKeys = nodeInfoArr[3].split("#");
 						int canJoinNum = Integer.parseInt(nodeInfoArr[4]);
 						int cantJoinNum = Integer.parseInt(nodeInfoArr[5]);
-						FKJoin fkJoin = new FKJoin(foreignKeys, probability, primakryKeys, canJoinNum, cantJoinNum);
+						FKJoin fkJoin = new FKJoin(foreignKeys, probability, primakryKeys,
+								canJoinNum, cantJoinNum,nodeInfoArr[0].equals("3"));
 						CCNode node = new CCNode(2, fkJoin);
 						nodes.add(node);
 					

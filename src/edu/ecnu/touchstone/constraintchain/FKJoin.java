@@ -25,14 +25,19 @@ public class FKJoin implements Serializable {
 	
 	// it's needed for generating 'fkJoinAdjustment' (its attribute 'probability')
 	private transient float accumulativeProbability;
+
+	// whether the node is the right join node or not
+	private boolean rightOuterJoin;
 	
-	public FKJoin(String[] foreignKeys, float probability, String[] primakryKeys, int canJoinNum, int cantJoinNum) {
+	public FKJoin(String[] foreignKeys, float probability, String[] primakryKeys,
+				  int canJoinNum, int cantJoinNum, boolean rightOuterJoin) {
 		super();
 		this.foreignKeys = foreignKeys;
 		this.probability = probability;
 		this.primakryKeys = primakryKeys;
 		this.canJoinNum = canJoinNum;
 		this.cantJoinNum = cantJoinNum;
+		this.rightOuterJoin=rightOuterJoin;
 		fkStr = Arrays.toString(this.foreignKeys);
 		rpkStr = Arrays.toString(this.primakryKeys);
 	}
@@ -46,6 +51,7 @@ public class FKJoin implements Serializable {
 		this.cantJoinNum = fkJoin.cantJoinNum;
 		this.fkStr = fkJoin.fkStr;
 		this.rpkStr = fkJoin.rpkStr;
+		this.rightOuterJoin=fkJoin.rightOuterJoin;
 	}
 
 	public void setFkJoinAdjustment(FKJoinAdjustment fkJoinAdjustment) {

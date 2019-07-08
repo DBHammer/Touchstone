@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 
+import com.joptimizer.exception.JOptimizerException;
+import edu.ecnu.touchstone.outerjoin.ComputeNullProbability;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
@@ -102,6 +105,8 @@ public class Controller {
 		Map<String, Map<Integer, ArrayList<long[]>>> neededPKJoinInfo = new HashMap<String, 
 				Map<Integer, ArrayList<long[]>>>();
 
+		Map<String, Map<Integer, Long[]>> neededLeftJoinFileSize=new HashMap<>();
+
 		// wait until all clients are connected to the server of the data generator
 		waitClientsConnected();
 
@@ -116,10 +121,24 @@ public class Controller {
 			logger.info("\n\tStart generating table " + tableName + "!");
 
 			List<String> referencedKeys = template.getReferencedKeys();
-			Map<String, Map<Integer, ArrayList<long[]>>> fksJoinInfo = 
-					new HashMap<String, Map<Integer, ArrayList<long[]>>>();
+			Map<String, Map<Integer, ArrayList<long[]>>> fksJoinInfo = new HashMap<String, Map<Integer, ArrayList<long[]>>>();
+			Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability=new HashMap<>();
+			Map<String, Integer> fkJoinStatus=template.getFkJoinStatus();
 			for (int j = 0; j < referencedKeys.size(); j++) {
-				fksJoinInfo.put(referencedKeys.get(j), neededPKJoinInfo.get(referencedKeys.get(j)));
+				String rpkAttName=referencedKeys.get(j);
+				String rpkTableName=rpkAttName.split(".")[0];
+				fksJoinInfo.put(rpkAttName, neededPKJoinInfo.get(rpkAttName));
+				int leftJoinTag=fkJoinStatus.get(rpkAttName)&tableGeneTemplateMap.get(rpkTableName).getLeftOuterJoinTag();
+				if(leftJoinTag!=0){
+					try {
+						fkLeftJoinNullProbability.put(rpkAttName,
+								ComputeNullProbability.computeTableAndFileNullProbability(
+								tableGeneTemplateMap.get(rpkTableName).getLeftJoinNullProbability(),
+								neededLeftJoinFileSize.get(rpkAttName),leftJoinTag));
+					} catch (JOptimizerException e) {
+						e.printStackTrace();
+					}
+				}
 				int count = pkReferenceCountMap.get(referencedKeys.get(j)) - 1;
 				pkReferenceCountMap.put(referencedKeys.get(j), count);
 				if (count == 0) {
@@ -128,6 +147,10 @@ public class Controller {
 				}
 			}
 			template.setFksJoinInfo(fksJoinInfo);
+			if(fkLeftJoinNullProbability.size()!=0){
+				template.setFkLeftJoinNullProbability(fkLeftJoinNullProbability);
+			}
+
 			logger.info("\n\tThe 'fkJoinInfo' has been set!");
 			logger.info("\n\tThe key set of neededPKJoinInfo is: " + neededPKJoinInfo.keySet());
 			
@@ -152,8 +175,15 @@ public class Controller {
 			logger.info("\n\tThe primary key join information (pkJoinInfo) of all data generators has been received!");
 
 			logger.info("\n\tStart merging 'pkJoinInfoList' ...");
-			neededPKJoinInfo.put(template.getPkStr(), 
-					JoinInfoMerger.merge(pkJoinInfoList, configurations.getPkvsMaxSize()));
+			if(template.hasLeftOuterJoin()){
+				Pair<Map<Integer, ArrayList<long[]>>, Map<Integer, Long[]>> joinInfoAndLeftJoinSize=
+						JoinInfoMerger.mergeLeftOuterJoin(pkJoinInfoList);
+				neededPKJoinInfo.put(template.getPkStr(),joinInfoAndLeftJoinSize.getLeft());
+				neededLeftJoinFileSize.put(template.getPkStr(),joinInfoAndLeftJoinSize.getRight());
+			}else {
+				neededPKJoinInfo.put(template.getPkStr(),
+						JoinInfoMerger.merge(pkJoinInfoList, configurations.getPkvsMaxSize()));
+			}
 			logger.info("\n\tMerge end!");
 			logger.info("\n\tThe key set of neededPKJoinKeyInfo is: " + neededPKJoinInfo.keySet());
 

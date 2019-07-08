@@ -4,25 +4,17 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 
+import edu.ecnu.touchstone.constraintchain.*;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import edu.ecnu.touchstone.constraintchain.CCNode;
-import edu.ecnu.touchstone.constraintchain.ConstraintChain;
-import edu.ecnu.touchstone.constraintchain.ConstraintChainsReader;
-import edu.ecnu.touchstone.constraintchain.Filter;
-import edu.ecnu.touchstone.constraintchain.FilterOperation;
 import edu.ecnu.touchstone.queryinstantiation.ComputingThreadPool;
 import edu.ecnu.touchstone.queryinstantiation.Parameter;
 import edu.ecnu.touchstone.queryinstantiation.QueryInstantiator;
@@ -113,7 +105,8 @@ public class Preprocessor {
 			Map<String, String> referKeyForeKeyMap = new HashMap<String, String>();
 			Map<Integer, Parameter> localParameterMap = new HashMap<Integer, Parameter>();
 			Map<String, Attribute> attributeMap = new HashMap<String, Attribute>();
-
+			Map<Integer, Double> leftJoinNullProbability=new HashMap<>();
+			Map<String, Integer> fkJoinStatus =new HashMap<>();
 			// keys
 			List<String> primaryKey = table.getPrimaryKey();
 			List<ForeignKey> foreignKeys = table.getForeignKeys();
@@ -140,8 +133,45 @@ public class Preprocessor {
 				}
 			}
 
+			// init left outer join
+			Map<String,Set<Integer>> fkJoinStatusSet=new HashMap<>();
+			for (ConstraintChain tableConstraintChain : tableConstraintChains) {
+				for (CCNode node : tableConstraintChain.getNodes()) {
+					if(node.getType()==1){
+						PKJoin pkJoin=(PKJoin)node.getNode();
+						if(pkJoin.getLeftOuterJoinNullProbability()!=null){
+							for (int j = 0; j < pkJoin.getLeftOuterJoinNullProbability().length; j++) {
+								//理论上这里应该都是非重复的
+								if(pkJoin.getLeftOuterJoinNullProbability()[j]!=0){
+									  leftJoinNullProbability.put(pkJoin.getCanJoinNum()[j],
+											  pkJoin.getLeftOuterJoinNullProbability()[j]);
+								}
+							}
+						}
+					}
+					if(node.getType()==2){
+						FKJoin fkJoin=(FKJoin)node.getNode();
+						if(!fkJoinStatusSet.containsKey(fkJoin.getRpkStr())){
+							Set<Integer> statusSet=new HashSet<>();
+							statusSet.add(fkJoin.getCanJoinNum());
+							fkJoinStatusSet.put(fkJoin.getRpkStr(),statusSet);
+						}else {
+							fkJoinStatusSet.get(fkJoin.getRpkStr()).add(fkJoin.getCanJoinNum());
+						}
+					}
+				}
+			}
+
+			for (Entry<String, Set<Integer>> stringSetEntry : fkJoinStatusSet.entrySet()) {
+				int sum=0;
+				for (Integer status : stringSetEntry.getValue()) {
+					sum+=status;
+				}
+				fkJoinStatus.put(stringSetEntry.getKey(), sum);
+			}
+
 			// referencedKeys (support mixed reference)
-			foreignKeys.sort((x, y) -> x.getReferencedKey().compareTo(y.getReferencedKey()));
+			foreignKeys.sort(Comparator.comparing(ForeignKey::getReferencedKey));
 			for (int index = 0, j = 0; j < foreignKeys.size(); j++) {
 				if ((j < foreignKeys.size() - 1)) {
 					if (foreignKeys.get(j).getReferencedKey().split("\\.")[0].equals(
@@ -188,7 +218,8 @@ public class Preprocessor {
 
 			TableGeneTemplate tableGeneTemplate = new TableGeneTemplate(tableName, tableSize, pkStr, 
 					keys, attributes, tableConstraintChains, referencedKeys, referKeyForeKeyMap, 
-					localParameterMap, attributeMap, shuffleMaxNum, pkvsMaxSize);
+					localParameterMap, attributeMap, shuffleMaxNum, pkvsMaxSize,
+					leftJoinNullProbability,fkJoinStatus);
 			tableGeneTemplateMap.put(tableName, tableGeneTemplate);
 		}
 

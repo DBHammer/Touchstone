@@ -37,6 +37,7 @@ public class Configurations {
 	private List<Integer> dataGeneratorThreadNums = new ArrayList<Integer>();
 	private List<String> dataGeneratorRunDirs = new ArrayList<String>();
 	private String dataOutputPath = null;
+	private String joinTableOutputPath = null;
 
 	// running parameters
 	private int queryInstantiationThreadNum;
@@ -133,6 +134,9 @@ public class Configurations {
 					break;
 				case "data output path":
 					dataOutputPath = arr[1];
+					break;
+				case "joinTableOutputPath":
+					joinTableOutputPath = arr[1];
 					break;
 				case "thread numbers of query instantiation":
 					queryInstantiationThreadNum = Integer.parseInt(arr[1]);
@@ -235,6 +239,8 @@ public class Configurations {
 	public String getDataOutputPath() {
 		return dataOutputPath;
 	}
+
+	public String getJoinTableOutputPath() {return joinTableOutputPath;}
 
 	public int getQueryInstantiationThreadNum() {
 		return queryInstantiationThreadNum;

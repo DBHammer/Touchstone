@@ -1,33 +1,18 @@
 package edu.ecnu.touchstone.pretreatment;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import edu.ecnu.touchstone.constraintchain.*;
+import edu.ecnu.touchstone.outerjoin.ReadOutJoinTable;
 import edu.ecnu.touchstone.outerjoin.WriteOutJoinTable;
-import org.apache.log4j.Logger;
-
-import edu.ecnu.touchstone.constraintchain.CCNode;
-import edu.ecnu.touchstone.constraintchain.ConstraintChain;
-import edu.ecnu.touchstone.constraintchain.FKJoin;
-import edu.ecnu.touchstone.constraintchain.FKJoinAdjustRule;
-import edu.ecnu.touchstone.constraintchain.FKJoinAdjustment;
-import edu.ecnu.touchstone.constraintchain.Filter;
-import edu.ecnu.touchstone.constraintchain.FilterOperation;
-import edu.ecnu.touchstone.constraintchain.PKJoin;
 import edu.ecnu.touchstone.queryinstantiation.Parameter;
 import edu.ecnu.touchstone.run.Statistic;
 import edu.ecnu.touchstone.run.Touchstone;
 import edu.ecnu.touchstone.schema.Attribute;
+import org.apache.log4j.Logger;
+
+import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.Map.Entry;
 
 // the generation template of the table
 // each thread has such an object
@@ -87,8 +72,8 @@ public class TableGeneTemplate implements Serializable{
 		this.attributeMap = attributeMap;
 		this.shuffleMaxNum = shuffleMaxNum;
 		this.pkvsMaxSize = pkvsMaxSize;
-		this.leftJoinNullProbability=leftJoinNullProbability;
 		this.fkJoinStatus=fkJoinStatus;
+		this.leftJoinNullProbability=leftJoinNullProbability;
 		for (Integer status : leftJoinNullProbability.keySet()) {
 			leftOuterJoinTag+=status;
 		}
@@ -142,17 +127,27 @@ public class TableGeneTemplate implements Serializable{
 	private transient SimpleDateFormat dateSdf = null;
 	private transient SimpleDateFormat dateTimeSdf = null;
 
+	//tha table has left join or not
 	private int leftOuterJoinTag;
 
+	//the left join null probability for every constrain links
 	private Map<Integer,Double> leftJoinNullProbability;
 
+	//the file link for write object
 	private WriteOutJoinTable writeOutJoinTable = null;
 
+	//record the status size in file
 	private Map<Integer, Long> pkJoinInfoFileSize = null;
 
+
+	//the can join sum for every fk join
 	private Map<String, Integer> fkJoinStatus;
 
+	//fk left join null probability for each fk and each join status
 	private Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability;
+
+	private Map<String, ReadOutJoinTable> fkReadOutJoinTables;
+
 
 	public void setFkLeftJoinNullProbability(Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability) {
 		this.fkLeftJoinNullProbability = fkLeftJoinNullProbability;
@@ -171,16 +166,30 @@ public class TableGeneTemplate implements Serializable{
 	}
 
 	public void setWriteOutJoinTable(String joinTableOutputPath) {
-		try {
-			this.writeOutJoinTable = new WriteOutJoinTable(joinTableOutputPath,pkStrArr.length);
-		} catch (IOException e) {
-			logger.error(e);
-			System.exit(0);
-		}
+		this.writeOutJoinTable = new WriteOutJoinTable(joinTableOutputPath);
+		new Thread(writeOutJoinTable).start();
 	}
 
-	public void closeWriteOutJoinTable() throws IOException {
-		writeOutJoinTable.close();
+	public boolean hasLeftOuterJoinFk(){
+		return fkLeftJoinNullProbability==null;
+	}
+
+	public void setReadOutJoinTable(String joinTableOutputPath,
+									Map<String, Map<Integer, Long>> eachTablePkJoinInfoFileSize) {
+		for (String pkName : fkLeftJoinNullProbability.keySet()) {
+			Map<Integer, Long> statusMustExistSize = new HashMap<>(eachTablePkJoinInfoFileSize.get(tableName));
+			Map<Integer, Long> statusNullSize = new HashMap<>(eachTablePkJoinInfoFileSize.get(tableName));
+			for (Integer status : statusMustExistSize.keySet()) {
+				long mustExistSize = (long) (statusMustExistSize.get(status) *
+						fkLeftJoinNullProbability.get(pkName).get(status)[1]);
+				statusMustExistSize.put(status, mustExistSize);
+				statusNullSize.put(status, statusMustExistSize.get(status) - mustExistSize);
+			}
+			ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(joinTableOutputPath + pkName,
+					statusMustExistSize, statusNullSize);
+			new Thread(readOutJoinTable).start();
+			fkReadOutJoinTables.put(pkName, readOutJoinTable);
+		}
 	}
 
 	public Map<Integer, Long> getPkJoinInfoFileSize() {
@@ -307,6 +316,7 @@ public class TableGeneTemplate implements Serializable{
 		this.leftJoinNullProbability= template.leftJoinNullProbability;
 		this.fkJoinStatus=template.fkJoinStatus;
 		this.fkLeftJoinNullProbability=template.fkLeftJoinNullProbability;
+		this.fkReadOutJoinTables=null;
 		this.writeOutJoinTable= null;
 		this.pkJoinInfoFileSize= null;
 		init();
@@ -372,6 +382,7 @@ public class TableGeneTemplate implements Serializable{
 					}
 					break;
 				case 2:
+				case 3:
 					// the tuple can flow to current node
 					if (flag) {
 						FKJoin fkJoin = (FKJoin)nodes.get(j).getNode();
@@ -383,7 +394,9 @@ public class TableGeneTemplate implements Serializable{
 							numCount += fkJoin.getCanJoinNum();
 						} else { // can't join
 							numCount += fkJoin.getCantJoinNum();
-							flag = false;
+							if(type!=3){
+								flag = false;
+							}
 						}
 						fkJoinStatusesMap.put(fkJoin.getRpkStr(), numCount);
 					}
@@ -391,6 +404,20 @@ public class TableGeneTemplate implements Serializable{
 				} // switch
 			} // for nodes
 		} // for chains
+
+		// generate left join keys
+		if (fkLeftJoinNullProbability != null) {
+			for (Entry<String, Integer> joinInfo : fkJoinStatusesMap.entrySet()) {
+				if (fkReadOutJoinTables.containsKey(joinInfo.getKey())) {
+					long[] fkValues = fkReadOutJoinTables.get(joinInfo.getKey()).getJoinKey(joinInfo.getValue());
+					String[] rpkNames = rpkStrToArray.get(joinInfo.getKey());
+					for (int i = 0; i < rpkNames.length; i++) {
+						attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[i]), fkValues[i] + "");
+					}
+					fkJoinStatusesMap.remove(joinInfo.getKey());
+				}
+			}
+		}
 
 		// generate foreign keys
 		// currently, we don't consider the situation of multiple assignments 
@@ -463,17 +490,13 @@ public class TableGeneTemplate implements Serializable{
 				pkValues = candidates.set((int)(Math.random() * candidates.size()), pkValues);
 			}
 			if(leftOuterJoinTag!=0){
-				try {
-					int fileStatus=pkJoinStatuses&(3*leftOuterJoinTag);
-					if(fileStatus!=2*leftOuterJoinTag){
-						if (!pkJoinInfoFileSize.containsKey(pkJoinStatuses)) {
-							pkJoinInfoFileSize.put(pkJoinStatuses, 0L);
-						}
-						pkJoinInfoFileSize.put(pkJoinStatuses,pkJoinInfoFileSize.get(pkJoinStatuses)-1);
-						writeOutJoinTable.write(fileStatus,pkValues);
+				int leftCanNotJoin= 2 * leftOuterJoinTag;
+				if ((pkJoinStatuses & leftCanNotJoin) != leftCanNotJoin) {
+					if (!pkJoinInfoFileSize.containsKey(pkJoinStatuses)) {
+						pkJoinInfoFileSize.put(pkJoinStatuses, 0L);
 					}
-				} catch (IOException e) {
-					e.printStackTrace();
+					pkJoinInfoFileSize.put(pkJoinStatuses, pkJoinInfoFileSize.get(pkJoinStatuses) - 1);
+					writeOutJoinTable.write(pkJoinStatuses,pkValues);
 				}
 			}
 		}

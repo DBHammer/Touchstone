@@ -178,6 +178,7 @@ class DataGenerationThread implements Runnable {
 	private int threadNum;
 	private String dataOutputPath = null;
 	private String joinTableOutputPath = null;
+	private Map<String,Map<Integer,Long>> eachTablePkJoinFileSize =new HashMap<>();
 
 	public DataGenerationThread(BlockingQueue<TableGeneTemplate> templateQueue, int threadId,
 			int threadNum, String dataOutputPath, String joinTableOutPath) {
@@ -197,11 +198,15 @@ class DataGenerationThread implements Runnable {
 				TableGeneTemplate template = templateQueue.take();
 				long tableSize = template.getTableSize();
 				File outputFile = new File(dataOutputPath + "//" + template.getTableName() + "_" + threadId + ".txt");
-				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new 
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new
 						FileOutputStream(outputFile), "UTF-8"));
 				if(template.hasLeftOuterJoin()){
 					template.setWriteOutJoinTable(joinTableOutputPath+ "//" +
-							template.getTableName() + "_" + threadId + ".txt");
+							template.getTableName() + "_" + threadId + "_");
+				}
+				if(template.hasLeftOuterJoinFk()){
+					template.setReadOutJoinTable(joinTableOutputPath+ "//" +
+							template.getTableName() + "_" + threadId + "_",eachTablePkJoinFileSize);
 				}
 				for (long uniqueNum = threadId; uniqueNum < tableSize; uniqueNum += threadNum) {
 					String[] tuple = template.geneTuple(uniqueNum);
@@ -216,11 +221,11 @@ class DataGenerationThread implements Runnable {
 				}
 				if(template.hasLeftOuterJoin()){
 					DataGenerator.addOuterJoinInfo(template.getPkJoinInfo(),template.getPkJoinInfoFileSize());
+					eachTablePkJoinFileSize.put(template.getTableName(),template.getPkJoinInfoFileSize());
 				}else {
 					DataGenerator.addPkJoinInfo(template.getPkJoinInfo());
 				}
 				bw.close();
-				template.closeWriteOutJoinTable();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

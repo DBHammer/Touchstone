@@ -19,34 +19,34 @@ public class ComputeNullProbability {
                                                                             Map<Integer, Long[]> mergedSizeInfo,
                                                                             int leftJoinTag) throws JOptimizerException {
         int leftJoinModTag = 3 * leftJoinTag;
-        int leftJoinFalseTag = 2 * leftJoinModTag;
+        int leftJoinFalseTag = 2 * leftJoinTag;
 
         Map<Integer, Double> taggedNullProbability = new HashMap<>();
         for (Map.Entry<Integer, Double> integerDoubleEntry : nullProbability.entrySet()) {
-            if((integerDoubleEntry.getKey()& leftJoinTag)!=0){
-                taggedNullProbability.put(integerDoubleEntry.getKey(),integerDoubleEntry.getValue());
+            if ((integerDoubleEntry.getKey() & leftJoinTag) != 0) {
+                taggedNullProbability.put(integerDoubleEntry.getKey(), integerDoubleEntry.getValue());
             }
         }
 
         //compute sum size for every left join status
         Map<Integer, Long[]> taggedSizeInfo = new HashMap<>();
         for (Map.Entry<Integer, Long[]> sizeInfo : mergedSizeInfo.entrySet()) {
-            int taggedStatus=sizeInfo.getKey()&leftJoinModTag;
-            if(taggedStatus!=leftJoinFalseTag){
-                if(taggedSizeInfo.containsKey(taggedStatus)){
-                    Long[] size=taggedSizeInfo.get(taggedStatus);
-                    size[0]+=sizeInfo.getValue()[0];
-                    size[1]+=sizeInfo.getValue()[1];
-                }else {
-                    taggedSizeInfo.put(taggedStatus,sizeInfo.getValue());
+            int taggedStatus = sizeInfo.getKey() & leftJoinModTag;
+            if (taggedStatus != leftJoinFalseTag) {
+                if (taggedSizeInfo.containsKey(taggedStatus)) {
+                    Long[] size = taggedSizeInfo.get(taggedStatus);
+                    size[0] += sizeInfo.getValue()[0];
+                    size[1] += sizeInfo.getValue()[1];
+                } else {
+                    taggedSizeInfo.put(taggedStatus, sizeInfo.getValue());
                 }
             }
         }
 
-        if(taggedNullProbability.size()>1){
+        if (taggedNullProbability.size() > 1) {
             Map<Integer, Long> taggedAllSizeInfo = new HashMap<>();
             for (Map.Entry<Integer, Long[]> integerEntry : taggedSizeInfo.entrySet()) {
-                taggedAllSizeInfo.put(integerEntry.getKey(),integerEntry.getValue()[0]+integerEntry.getValue()[1]);
+                taggedAllSizeInfo.put(integerEntry.getKey(), integerEntry.getValue()[0] + integerEntry.getValue()[1]);
             }
             //compute null probability for every status
             taggedNullProbability = ComputeNullProbability.
@@ -125,7 +125,11 @@ public class ComputeNullProbability {
             int j = 0;
             for (Map.Entry<Integer, Double> keyNullProbability : eachKeyNullProbability.entrySet()) {
                 if ((i & checkType[j]) == 0) {
-                    a[j][i] = joinInfoSizes.get(joinStatusList[i]);
+                    if (joinInfoSizes.containsKey(joinStatusList[i])) {
+                        a[j][i] = joinInfoSizes.get(joinStatusList[i]);
+                    } else {
+                        a[j][i] = 0;
+                    }
                     double computePercentage = a[j][i] / joinInfoSumSizes.get(keyNullProbability.getKey());
                     pValue += computePercentage * computePercentage;
                     qValue += keyNullProbability.getValue() * computePercentage * computePercentage;

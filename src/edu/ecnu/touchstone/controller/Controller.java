@@ -126,7 +126,7 @@ public class Controller {
 			Map<String, Integer> fkJoinStatus=template.getFkJoinStatus();
 			for (int j = 0; j < referencedKeys.size(); j++) {
 				String rpkAttName=referencedKeys.get(j);
-				String rpkTableName=rpkAttName.split(".")[0];
+				String rpkTableName=rpkAttName.substring(1,rpkAttName.length()-2).split("\\.")[0];
 				fksJoinInfo.put(rpkAttName, neededPKJoinInfo.get(rpkAttName));
 				int leftJoinTag=fkJoinStatus.get(rpkAttName)&tableGeneTemplateMap.get(rpkTableName).getLeftOuterJoinTag();
 				if(leftJoinTag!=0){

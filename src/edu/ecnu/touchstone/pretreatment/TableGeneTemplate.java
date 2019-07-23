@@ -166,29 +166,35 @@ public class TableGeneTemplate implements Serializable{
 	}
 
 	public void setWriteOutJoinTable(String joinTableOutputPath) {
-		this.writeOutJoinTable = new WriteOutJoinTable(joinTableOutputPath);
-		new Thread(writeOutJoinTable).start();
+		if(leftOuterJoinTag!=0){
+			this.writeOutJoinTable = new WriteOutJoinTable(joinTableOutputPath);
+			new Thread(writeOutJoinTable).start();
+		}
 	}
 
 	public boolean hasLeftOuterJoinFk(){
 		return fkLeftJoinNullProbability==null;
 	}
 
-	public void setReadOutJoinTable(String joinTableOutputPath,
-									Map<String, Map<Integer, Long>> eachTablePkJoinInfoFileSize) {
-		for (String pkName : fkLeftJoinNullProbability.keySet()) {
-			Map<Integer, Long> statusMustExistSize = new HashMap<>(eachTablePkJoinInfoFileSize.get(tableName));
-			Map<Integer, Long> statusNullSize = new HashMap<>(eachTablePkJoinInfoFileSize.get(tableName));
-			for (Integer status : statusMustExistSize.keySet()) {
-				long mustExistSize = (long) (statusMustExistSize.get(status) *
-						fkLeftJoinNullProbability.get(pkName).get(status)[1]);
-				statusMustExistSize.put(status, mustExistSize);
-				statusNullSize.put(status, statusMustExistSize.get(status) - mustExistSize);
+	public void setReadOutJoinTable(String joinTableOutputPath, Map<String,Integer> leftJoinTags) {
+		if(fkLeftJoinNullProbability!=null){
+			for (String pkName : fkLeftJoinNullProbability.keySet()) {
+				ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(joinTableOutputPath + pkName,
+						fkLeftJoinNullProbability.get(pkName), leftJoinTags.get(pkName));
+				new Thread(readOutJoinTable).start();
+				fkReadOutJoinTables.put(pkName, readOutJoinTable);
 			}
-			ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(joinTableOutputPath + pkName,
-					statusMustExistSize, statusNullSize);
-			new Thread(readOutJoinTable).start();
-			fkReadOutJoinTables.put(pkName, readOutJoinTable);
+		}
+	}
+
+	public void stopAllFileThread(){
+		if(writeOutJoinTable!=null){
+			writeOutJoinTable.stopThread();
+		}
+		if(fkReadOutJoinTables!=null){
+			for (ReadOutJoinTable threads : fkReadOutJoinTables.values()) {
+				threads.stopThread();
+			}
 		}
 	}
 
@@ -310,8 +316,6 @@ public class TableGeneTemplate implements Serializable{
 		}
 		this.shuffleMaxNum = template.shuffleMaxNum;
 		this.pkvsMaxSize = template.pkvsMaxSize;
-		// shallow copy
-		this.fksJoinInfo = template.fksJoinInfo;
 		this.leftOuterJoinTag=template.leftOuterJoinTag;
 		this.leftJoinNullProbability= template.leftJoinNullProbability;
 		this.fkJoinStatus=template.fkJoinStatus;
@@ -319,6 +323,9 @@ public class TableGeneTemplate implements Serializable{
 		this.fkReadOutJoinTables=null;
 		this.writeOutJoinTable= null;
 		this.pkJoinInfoFileSize= null;
+		
+		// shallow copy
+		this.fksJoinInfo = template.fksJoinInfo;
 		init();
 	}
 

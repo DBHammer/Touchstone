@@ -41,8 +41,10 @@ public class PKJoin implements Serializable {
 		this.primaryKeys = Arrays.copyOf(pkJoin.primaryKeys, pkJoin.primaryKeys.length);
 		this.canJoinNum = Arrays.copyOf(pkJoin.canJoinNum, pkJoin.canJoinNum.length);
 		this.cantJoinNum = Arrays.copyOf(pkJoin.cantJoinNum, pkJoin.cantJoinNum.length);
-		this.leftOuterJoinNullProbability= Arrays.copyOf(pkJoin.leftOuterJoinNullProbability,
-				pkJoin.leftOuterJoinNullProbability.length);
+		if(pkJoin.leftOuterJoinNullProbability!=null){
+			this.leftOuterJoinNullProbability= Arrays.copyOf(pkJoin.leftOuterJoinNullProbability,
+					pkJoin.leftOuterJoinNullProbability.length);
+		}
 		this.pkStr = pkJoin.pkStr;
 	}
 

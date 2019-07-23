@@ -1,6 +1,5 @@
 package edu.ecnu.touchstone.controller;
 
-import com.joptimizer.exception.JOptimizerException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -49,7 +48,7 @@ public class JoinInfoMerger {
     /**
      * controller merge all pkJoinInfoList in left join mode
      *
-     * @param pkJoinInfoList  the list of all pkJoinInfo
+     * @param pkJoinInfoList the list of all pkJoinInfo
      * @return the merged pkJoin Info which has deleted the value which is null and
      * the file size for each left outer join status
      */
@@ -92,12 +91,12 @@ public class JoinInfoMerger {
         //compute join table size for every left join status
         Map<Integer, Long[]> mergedSizeInfo = new HashMap<>(mergedPkJoinInfo.size());
         for (Entry<Integer, ArrayList<long[]>> joinStatusInfo : mergedPkJoinInfo.entrySet()) {
-            int status=joinStatusInfo.getKey();
-            if (!mergedSizeInfo.containsKey(status)) {
-                mergedSizeInfo.put(status, new Long[]{(long) joinStatusInfo.getValue().size(),
-                                mergedFileSizeInfo.get(status)});
+            int status = joinStatusInfo.getKey();
+            if (!mergedFileSizeInfo.containsKey(status)) {
+                mergedSizeInfo.put(status, new Long[]{(long) joinStatusInfo.getValue().size(), 0L});
             } else {
-                mergedSizeInfo.get(status)[0] += (long) joinStatusInfo.getValue().size();
+                mergedSizeInfo.put(status, new Long[]{(long) joinStatusInfo.getValue().size(),
+                        mergedFileSizeInfo.get(status)});
             }
         }
 

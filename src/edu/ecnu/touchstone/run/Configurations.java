@@ -46,8 +46,25 @@ public class Configurations {
 	private int shuffleMaxNum;
 	private int pkvsMaxSize;
 
+	// outer join file thread config
+	private int maxSizeofJoinInfoInMemory;
+	private int minSizeofJoinInfoStatus;
+	private int maxNumofJoinInfoInMemory;
+
 	public Configurations(String confFilePath) {
 		read(confFilePath);
+	}
+
+	public int getMaxSizeofJoinInfoInMemory() {
+		return maxSizeofJoinInfoInMemory;
+	}
+
+	public int getMinSizeofJoinInfoStatus() {
+		return minSizeofJoinInfoStatus;
+	}
+
+	public int getMaxNumofJoinInfoInMemory() {
+		return maxNumofJoinInfoInMemory;
 	}
 
 	private void read(String confFilePath) {
@@ -158,6 +175,18 @@ public class Configurations {
 					break;
 				case "maximum size of PKVs":
 					pkvsMaxSize = Integer.parseInt(arr[1]);
+					break;
+				case "maximum num of join table file in memory":
+					maxNumofJoinInfoInMemory = Integer.parseInt(arr[1]);
+					break;
+				case "maximum size of join table in memory":
+					maxSizeofJoinInfoInMemory =Integer.parseInt(arr[1]);
+					break;
+				case "minimum size of join table status in memory":
+					minSizeofJoinInfoStatus =Integer.parseInt(arr[1]);
+					break;
+				case "join info output path":
+					joinTableOutputPath = arr[1].trim();
 					break;
 				default:
 					System.out.println("Unable to identify the configuration item!\n" + 

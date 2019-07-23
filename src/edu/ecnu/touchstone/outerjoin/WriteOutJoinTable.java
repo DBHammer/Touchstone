@@ -27,7 +27,7 @@ public class WriteOutJoinTable implements Runnable {
     /**
      * 缓冲队列中最大的join info表的数量
      */
-    private static int maxSizeInMemory;
+    private static int maxNumInMemory;
 
     /**
      * 当前JoinInfo中的Size
@@ -37,19 +37,19 @@ public class WriteOutJoinTable implements Runnable {
     /**
      * JoinInfo最大承载的Size
      */
-    private static int maxJoinInfoSizeInMemory;
+    private static int maxSizeofJoinInfoInMemory;
 
-    public static void setMaxJoinInfoSizeInMemory(int maxJoinInfoSizeInMemory) {
-        WriteOutJoinTable.maxJoinInfoSizeInMemory = maxJoinInfoSizeInMemory;
+    public static void setMaxSizeofJoinInfoInMemory(int maxSizeofJoinInfoInMemory) {
+        WriteOutJoinTable.maxSizeofJoinInfoInMemory = maxSizeofJoinInfoInMemory;
     }
 
-    public static void setMaxSizeInMemory(int maxSizeInMemory) {
-        WriteOutJoinTable.maxSizeInMemory = maxSizeInMemory;
+    public static void setMaxNumInMemory(int maxNumInMemory) {
+        WriteOutJoinTable.maxNumInMemory = maxNumInMemory;
     }
 
     public WriteOutJoinTable(String joinTableWritePath) {
         this.joinTableWritePath = joinTableWritePath;
-        joinInfoQueue = new LinkedBlockingQueue<>(maxSizeInMemory);
+        joinInfoQueue = new LinkedBlockingQueue<>(maxNumInMemory);
         joinInfoInMemory = new HashMap<>();
     }
 
@@ -61,7 +61,7 @@ public class WriteOutJoinTable implements Runnable {
             keys.add(key);
             joinInfoInMemory.put(status, keys);
         }
-        if (++currentJoinInfoSizeInMemory > maxJoinInfoSizeInMemory) {
+        if (++currentJoinInfoSizeInMemory > maxSizeofJoinInfoInMemory) {
             joinInfoQueue.add(joinInfoInMemory);
             joinInfoInMemory = new HashMap<>();
         }

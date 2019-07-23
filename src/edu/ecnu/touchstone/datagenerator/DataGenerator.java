@@ -1,5 +1,15 @@
 package edu.ecnu.touchstone.datagenerator;
 
+import edu.ecnu.touchstone.controller.JoinInfoMerger;
+import edu.ecnu.touchstone.outerjoin.ReadOutJoinTable;
+import edu.ecnu.touchstone.outerjoin.WriteOutJoinTable;
+import edu.ecnu.touchstone.pretreatment.TableGeneTemplate;
+import edu.ecnu.touchstone.run.Configurations;
+import edu.ecnu.touchstone.run.Statistic;
+import edu.ecnu.touchstone.run.Touchstone;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,15 +21,6 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-
-import edu.ecnu.touchstone.controller.JoinInfoMerger;
-import edu.ecnu.touchstone.pretreatment.TableGeneTemplate;
-import edu.ecnu.touchstone.run.Configurations;
-import edu.ecnu.touchstone.run.Statistic;
-import edu.ecnu.touchstone.run.Touchstone;
 
 // in practice, multiple data generators are deployed in general
 // main functions: generate data, maintain join information of the primary key
@@ -66,6 +67,7 @@ public class DataGenerator implements Runnable {
 
 		setUpDataGenerationThreads();
 		setUpNetworkThreads();
+		setUpFileThread();
 
 		while (true) {
 			try {
@@ -87,6 +89,14 @@ public class DataGenerator implements Runnable {
 			countDownLatch = new CountDownLatch(threadNum);
 		}
 	}
+
+	private void setUpFileThread(){
+        WriteOutJoinTable.setMaxSizeofJoinInfoInMemory(configurations.getMaxSizeofJoinInfoInMemory());
+        WriteOutJoinTable.setMaxNumInMemory(configurations.getMaxNumofJoinInfoInMemory());
+		ReadOutJoinTable.setMaxNumOfJoinInfoInMemory(configurations.getMaxNumofJoinInfoInMemory());
+		ReadOutJoinTable.setMinSizeofJoinStatus(configurations.getMinSizeofJoinInfoStatus());
+    }
+
 
 	private void setUpDataGenerationThreads() {
 		// 'localThreadNum' is the number of threads on this node
@@ -178,7 +188,7 @@ class DataGenerationThread implements Runnable {
 	private int threadNum;
 	private String dataOutputPath = null;
 	private String joinTableOutputPath = null;
-	private Map<String,Map<Integer,Long>> eachTablePkJoinFileSize =new HashMap<>();
+	private Map<String, Integer> eachTableLeftJoinTag =new HashMap<>();
 
 	public DataGenerationThread(BlockingQueue<TableGeneTemplate> templateQueue, int threadId,
 			int threadNum, String dataOutputPath, String joinTableOutPath) {
@@ -206,7 +216,7 @@ class DataGenerationThread implements Runnable {
 				}
 				if(template.hasLeftOuterJoinFk()){
 					template.setReadOutJoinTable(joinTableOutputPath+ "//" +
-							template.getTableName() + "_" + threadId + "_",eachTablePkJoinFileSize);
+							template.getTableName() + "_" + threadId + "_",eachTableLeftJoinTag);
 				}
 				for (long uniqueNum = threadId; uniqueNum < tableSize; uniqueNum += threadNum) {
 					String[] tuple = template.geneTuple(uniqueNum);
@@ -219,13 +229,14 @@ class DataGenerationThread implements Runnable {
 					bw.write(sb.toString());
 					sb.setLength(0);
 				}
-				if(template.hasLeftOuterJoin()){
-					DataGenerator.addOuterJoinInfo(template.getPkJoinInfo(),template.getPkJoinInfoFileSize());
-					eachTablePkJoinFileSize.put(template.getTableName(),template.getPkJoinInfoFileSize());
-				}else {
+				if (template.hasLeftOuterJoin() && template.getPkJoinInfoFileSize()!=null) {
+					DataGenerator.addOuterJoinInfo(template.getPkJoinInfo(), template.getPkJoinInfoFileSize());
+					eachTableLeftJoinTag.put(template.getTableName(), 3 * template.getLeftOuterJoinTag());
+				} else {
 					DataGenerator.addPkJoinInfo(template.getPkJoinInfo());
 				}
 				bw.close();
+				template.stopAllFileThread();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

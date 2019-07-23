@@ -192,6 +192,10 @@ public class Controller {
 
 		long endTime = System.currentTimeMillis();
 		logger.info("\n\tTime of data generation: " + (endTime - startTime) + "ms");
+		TableGeneTemplate exitSignal=new TableGeneTemplate();
+		for (ControllerClient client : clients) {
+			client.send(exitSignal);
+		}
 	}
 
 	private void waitClientsConnected() {

@@ -57,5 +57,7 @@ public class RunController {
 		Controller controller = new Controller(tablePartialOrder, tableGeneTemplateMap, configurations);
 		controller.setUpNetworkThreads();
 		controller.geneData();
+		//程序退出
+		System.exit(0);
 	}
 }

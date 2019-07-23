@@ -18,6 +18,9 @@ public class DataGeneratorServerHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		TableGeneTemplate template = (TableGeneTemplate)msg;
+		if("exitProcess".equals(template.getTableName())){
+			System.exit(0);
+		}
 		DataGenerator.addTemplate(template);
 
 		logger.info("\n\tData generator has recieved a table generation template where the table name is " + 

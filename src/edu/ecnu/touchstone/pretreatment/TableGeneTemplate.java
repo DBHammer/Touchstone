@@ -55,6 +55,11 @@ public class TableGeneTemplate implements Serializable{
 	// the maximum size of pkvs list (the value of map 'pkJoinInfo', for compression algorithm)
 	private int pkvsMaxSize;
 
+	public TableGeneTemplate(){
+		tableName="exitProcess";
+	}
+
+
 	public TableGeneTemplate(String tableName, long tableSize, String pkStr, List<Key> keys, List<Attribute> attributes,
 			List<ConstraintChain> constraintChains, List<String> referencedKeys, Map<String, String> referKeyForeKeyMap,
 			Map<Integer, Parameter> parameterMap, Map<String, Attribute> attributeMap, int shuffleMaxNum,

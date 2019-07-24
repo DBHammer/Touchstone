@@ -129,13 +129,15 @@ public class Controller {
 								tableGeneTemplateMap.get(rpkTableName).getLeftJoinNullProbability(),
 								neededLeftJoinSize.get(rpkAttName), leftJoinTag);
 						fkJoinInfoInFileNullProbability.put(rpkAttName, nullProbability.get(1));
-						Map<Integer, ArrayList<long[]>> fkJoinInfoAfterNull =
-								new HashMap<>(neededPKJoinInfo.get(rpkAttName));
+						Map<Integer, ArrayList<long[]>> fkJoinInfoAfterNull = new HashMap<>();
+						for (Entry<Integer, ArrayList<long[]>> joinInfo : neededPKJoinInfo.get(rpkAttName).entrySet()) {
+							fkJoinInfoAfterNull.put(joinInfo.getKey(), new ArrayList<>(joinInfo.getValue()));
+						}
 						for (Entry<Integer, ArrayList<long[]>> joinInfo : fkJoinInfoAfterNull.entrySet()) {
 							int joinResult=joinInfo.getKey() & 3*leftJoinTag;
 							if(joinResult!=leftJoinTag * 2){
-								double existProbability = 1 - nullProbability.get(0).get(joinResult);
-								int existSize = (int) (joinInfo.getValue().size() * existProbability);
+								double fileNullProbability = nullProbability.get(0).get(joinResult);
+								int existSize = (int) (joinInfo.getValue().size() * fileNullProbability);
 								joinInfo.getValue().subList(0, existSize).clear();
 								fkJoinInfoAfterNull.put(joinInfo.getKey(), joinInfo.getValue());
 							}

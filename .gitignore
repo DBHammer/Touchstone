@@ -104,3 +104,5 @@ data/
 joinTable/
 touchstone.iml
 !lib/*
+outerJoin/
+log/

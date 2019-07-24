@@ -9,10 +9,8 @@ import com.joptimizer.optimizers.OptimizationRequest;
 import edu.ecnu.touchstone.run.Touchstone;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
 
 /**
  * @author wangqingshuai
@@ -42,7 +40,7 @@ public class ComputeNullProbability {
                     size[0] += sizeInfo.getValue()[0];
                     size[1] += sizeInfo.getValue()[1];
                 } else {
-                    taggedSizeInfo.put(taggedStatus, sizeInfo.getValue());
+                    taggedSizeInfo.put(taggedStatus, Arrays.copyOf(sizeInfo.getValue(),sizeInfo.getValue().length));
                 }
             }
         }

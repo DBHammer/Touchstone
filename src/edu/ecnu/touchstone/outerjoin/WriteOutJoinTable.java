@@ -81,15 +81,19 @@ public class WriteOutJoinTable implements Runnable {
     @Override
     public void run() {
         while (true) {
+            Map<Integer, List<long[]>> joinInfo = null;
+            try {
+                joinInfo = joinInfoQueue.take();
+            } catch (InterruptedException e) {
+                logger.error(e);
+            }
+            if (joinInfo == null || joinInfo.size() == 0) {
+                return;
+            }
             try (ObjectOutputStream joinTableOutputStream = new ObjectOutputStream(new FileOutputStream(
                     new File(joinTableWritePath + (++writeIndex))))) {
-                Map<Integer, List<long[]>> joinInfo = joinInfoQueue.take();
-                if (joinInfo.size() == 0) {
-                    return;
-                } else {
-                    joinTableOutputStream.writeObject(joinInfo);
-                }
-            } catch (IOException | InterruptedException e) {
+                joinTableOutputStream.writeObject(joinInfo);
+            } catch (IOException e) {
                 logger.error(e);
             }
         }

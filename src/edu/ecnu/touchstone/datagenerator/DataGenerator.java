@@ -215,8 +215,7 @@ class DataGenerationThread implements Runnable {
 							template.getTableName() + "_" + threadId + "_");
 				}
 				if(template.hasLeftOuterJoinFk()){
-					template.setReadOutJoinTable(joinTableOutputPath+ "//" +
-							template.getTableName() + "_" + threadId + "_",eachTableLeftJoinTag);
+					template.setReadOutJoinTable(joinTableOutputPath+"//",threadId,eachTableLeftJoinTag);
 				}
 				for (long uniqueNum = threadId; uniqueNum < tableSize; uniqueNum += threadNum) {
 					String[] tuple = template.geneTuple(uniqueNum);
@@ -237,6 +236,7 @@ class DataGenerationThread implements Runnable {
 				}
 				bw.close();
 				template.stopAllFileThread();
+				template.printNum();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

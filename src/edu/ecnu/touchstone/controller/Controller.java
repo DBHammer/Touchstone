@@ -132,10 +132,13 @@ public class Controller {
 						Map<Integer, ArrayList<long[]>> fkJoinInfoAfterNull =
 								new HashMap<>(neededPKJoinInfo.get(rpkAttName));
 						for (Entry<Integer, ArrayList<long[]>> joinInfo : fkJoinInfoAfterNull.entrySet()) {
-							double existProbability = 1 - nullProbability.get(0).get(joinInfo.getKey() & leftJoinTag);
-							int existSize = (int) (joinInfo.getValue().size() * existProbability);
-							joinInfo.getValue().subList(0, existSize).clear();
-							fkJoinInfoAfterNull.put(joinInfo.getKey(), joinInfo.getValue());
+							int joinResult=joinInfo.getKey() & 3*leftJoinTag;
+							if(joinResult!=leftJoinTag * 2){
+								double existProbability = 1 - nullProbability.get(0).get(joinResult);
+								int existSize = (int) (joinInfo.getValue().size() * existProbability);
+								joinInfo.getValue().subList(0, existSize).clear();
+								fkJoinInfoAfterNull.put(joinInfo.getKey(), joinInfo.getValue());
+							}
 						}
 						fksJoinInfo.put(rpkAttName,fkJoinInfoAfterNull);
 					} catch (JOptimizerException e) {

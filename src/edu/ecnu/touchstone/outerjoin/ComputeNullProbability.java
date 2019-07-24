@@ -6,6 +6,8 @@ import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.functions.PDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
+import edu.ecnu.touchstone.run.Touchstone;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,8 +20,8 @@ import java.util.Map;
 public class ComputeNullProbability {
 
     public static List<Map<Integer, Double>> computeTableAndFileNullProbability(Map<Integer, Double> nullProbability,
-                                                                            Map<Integer, Long[]> mergedSizeInfo,
-                                                                            int leftJoinTag) throws JOptimizerException {
+                                                                                Map<Integer, Long[]> mergedSizeInfo,
+                                                                                int leftJoinTag) throws JOptimizerException {
         int leftJoinModTag = 3 * leftJoinTag;
         int leftJoinFalseTag = 2 * leftJoinTag;
 
@@ -62,7 +64,7 @@ public class ComputeNullProbability {
         //join info in file null probability
         tableAndFileNullProbability.add(new HashMap<>());
         for (Integer status : taggedNullProbability.keySet()) {
-            double[] sol = ComputeNullProbability.computeTableAndFileNullProbability(taggedSizeInfo.get(status)[0],
+            double[] sol = computeTableAndFileNullProbability(taggedSizeInfo.get(status)[0],
                     taggedSizeInfo.get(status)[1], taggedNullProbability.get(status));
             tableAndFileNullProbability.get(0).put(status, sol[0]);
             tableAndFileNullProbability.get(1).put(status, sol[1]);
@@ -112,7 +114,7 @@ public class ComputeNullProbability {
         for (Map.Entry<Integer, Long> joinInfoSumSize : joinInfoSumSizes.entrySet()) {
             long sum = 0;
             for (Map.Entry<Integer, Long> joinInfoSize : joinInfoSizes.entrySet()) {
-                if ((joinInfoSumSize.getKey() & joinInfoSize.getKey()) == joinInfoSize.getKey()) {
+                if ((joinInfoSize.getKey() & joinInfoSumSize.getKey()) == joinInfoSumSize.getKey()) {
                     sum += joinInfoSize.getValue();
                 }
             }
@@ -143,8 +145,8 @@ public class ComputeNullProbability {
                 }
                 j++;
             }
-            p[i][i] = pValue * 2;
-            q[i] = qValue * -2;
+            p[i][i] = pValue;
+            q[i] = -qValue;
         }
 
         //compute b
@@ -152,14 +154,16 @@ public class ComputeNullProbability {
         for (Integer status : eachKeyNullProbability.keySet()) {
             b[i++] = eachKeyNullProbability.get(status) * joinInfoSumSizes.get(status);
         }
-
         //compute constraint chain null probability by JOptimiser
         double[] sol = computeConstraintChainNullProbability(p, q, a, b);
 
         //transform the result
         Map<Integer, Double> computeConstraintChainNullProbabilityForEveryStatus = new HashMap<>(sol.length);
         for (i = 0; i < sol.length; i++) {
-            computeConstraintChainNullProbabilityForEveryStatus.put(joinStatusList[i], sol[i]);
+            int status = joinStatusList[i];
+            if (joinInfoSizes.containsKey(status)) {
+                computeConstraintChainNullProbabilityForEveryStatus.put(status, sol[i]);
+            }
         }
         return computeConstraintChainNullProbabilityForEveryStatus;
     }
@@ -178,6 +182,8 @@ public class ComputeNullProbability {
                                                                   double[] q,
                                                                   double[][] a,
                                                                   double[] b) throws JOptimizerException {
+        Logger.getLogger(Touchstone.class).debug(formatLog(p, q, a, b));
+
         //init optimization
         OptimizationRequest or = new OptimizationRequest();
 
@@ -229,9 +235,9 @@ public class ComputeNullProbability {
         //set inequalities function
         ConvexMultivariateRealFunction[] inequalities = new ConvexMultivariateRealFunction[4];
         inequalities[0] = new LinearMultivariateRealFunction(new double[]{-1., 0.}, 0);
-        inequalities[1] = new LinearMultivariateRealFunction(new double[]{1., 0.}, 1);
+        inequalities[1] = new LinearMultivariateRealFunction(new double[]{1., 0.}, -1);
         inequalities[2] = new LinearMultivariateRealFunction(new double[]{0., -1.}, 0);
-        inequalities[3] = new LinearMultivariateRealFunction(new double[]{0., 1.}, 1);
+        inequalities[3] = new LinearMultivariateRealFunction(new double[]{0., 1.}, -1);
         or.setFi(inequalities);
 
         //set Ax=b
@@ -243,6 +249,36 @@ public class ComputeNullProbability {
         opt.setOptimizationRequest(or);
         opt.optimize();
         return opt.getOptimizationResponse().getSolution();
+    }
+
+    private static String formatLog(double[][] p,
+                                    double[] q,
+                                    double[][] a,
+                                    double[] b) {
+        StringBuilder log = new StringBuilder();
+        log.append("\nMatrix P values is:\n");
+        for (double[] values : p) {
+            for (double value : values) {
+                log.append(value).append("\t");
+            }
+            log.append("\n");
+        }
+        log.append("Matrix Q values is:\n");
+        for (double value : q) {
+            log.append(value).append("\t");
+        }
+        log.append("\nMatrix A values is:\n");
+        for (double[] values : a) {
+            for (double value : values) {
+                log.append(value).append("\t");
+            }
+            log.append("\n");
+        }
+        log.append("Matrix B values is:\n");
+        for (double value : b) {
+            log.append(value).append("\t");
+        }
+        return log.toString();
     }
 }
 

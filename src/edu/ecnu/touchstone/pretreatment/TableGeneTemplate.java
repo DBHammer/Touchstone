@@ -178,16 +178,18 @@ public class TableGeneTemplate implements Serializable{
 	}
 
 	public boolean hasLeftOuterJoinFk(){
-		return fkLeftJoinInFileNullProbability ==null;
+		return fkLeftJoinInFileNullProbability !=null;
 	}
 
 	public void setReadOutJoinTable(String joinTableOutputPath, Map<String,Integer> leftJoinTags) {
 		if(fkLeftJoinInFileNullProbability !=null){
 			for (String pkName : fkLeftJoinInFileNullProbability.keySet()) {
-				ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(joinTableOutputPath + pkName,
-						fkLeftJoinInFileNullProbability.get(pkName), leftJoinTags.get(pkName));
-				new Thread(readOutJoinTable).start();
-				fkReadOutJoinTables.put(pkName, readOutJoinTable);
+				if(leftJoinTags.containsKey(pkName)){
+					ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(joinTableOutputPath + pkName,
+							fkLeftJoinInFileNullProbability.get(pkName), leftJoinTags.get(pkName));
+					new Thread(readOutJoinTable).start();
+					fkReadOutJoinTables.put(pkName, readOutJoinTable);
+				}
 			}
 		}
 	}
@@ -418,7 +420,7 @@ public class TableGeneTemplate implements Serializable{
 		} // for chains
 
 		// generate left join keys
-		if (fkLeftJoinInFileNullProbability != null) {
+		if (fkReadOutJoinTables != null) {
 			for (Entry<String, Integer> joinInfo : fkJoinStatusesMap.entrySet()) {
 				if (fkReadOutJoinTables.containsKey(joinInfo.getKey())) {
 					long[] fkValues = fkReadOutJoinTables.get(joinInfo.getKey()).getJoinKey(joinInfo.getValue());

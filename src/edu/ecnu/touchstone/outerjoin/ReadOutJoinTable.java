@@ -48,11 +48,11 @@ public class ReadOutJoinTable implements Runnable {
         ReadOutJoinTable.maxNumOfJoinInfoInMemory = maxNumOfJoinInfoInMemory;
     }
 
-    private Map<Integer, double[]> statusNullProbability;
+    private Map<Integer, Double> statusNullProbability;
     private int leftOuterTag;
 
 
-    public ReadOutJoinTable(String joinTableReadPath, Map<Integer, double[]> statusNullProbability, int leftOuterTag) {
+    public ReadOutJoinTable(String joinTableReadPath, Map<Integer, Double> statusNullProbability, int leftOuterTag) {
         this.joinTableReadPath = joinTableReadPath;
         this.statusNullProbability = statusNullProbability;
         this.leftOuterTag = leftOuterTag;
@@ -67,7 +67,7 @@ public class ReadOutJoinTable implements Runnable {
             // it maybe cause an error. But in fact it must not be.
             Map<Integer, List<long[]>> readJoinInfo = (Map<Integer, List<long[]>>) joinTableOutputStream.readObject();
             for (Map.Entry<Integer, List<long[]>> joinInfo : readJoinInfo.entrySet()) {
-                joinInfo.getValue().subList(0, (int) (statusNullProbability.get(joinInfo.getKey() & leftOuterTag)[1]
+                joinInfo.getValue().subList(0, (int) (statusNullProbability.get(joinInfo.getKey() & leftOuterTag)
                         * joinInfo.getValue().size())).clear();
             }
             return readJoinInfo;

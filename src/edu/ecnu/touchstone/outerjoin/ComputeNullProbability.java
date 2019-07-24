@@ -7,7 +7,9 @@ import com.joptimizer.functions.PDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,7 +17,7 @@ import java.util.Map;
  */
 public class ComputeNullProbability {
 
-    public static Map<Integer, double[]> computeTableAndFileNullProbability(Map<Integer, Double> nullProbability,
+    public static List<Map<Integer, Double>> computeTableAndFileNullProbability(Map<Integer, Double> nullProbability,
                                                                             Map<Integer, Long[]> mergedSizeInfo,
                                                                             int leftJoinTag) throws JOptimizerException {
         int leftJoinModTag = 3 * leftJoinTag;
@@ -54,11 +56,16 @@ public class ComputeNullProbability {
         }
 
         //compute null probability for table and file
-        Map<Integer, double[]> tableAndFileNullProbability = new HashMap<>();
+        List<Map<Integer, Double>> tableAndFileNullProbability = new ArrayList<>();
+        //join info in memory null probability
+        tableAndFileNullProbability.add(new HashMap<>());
+        //join info in file null probability
+        tableAndFileNullProbability.add(new HashMap<>());
         for (Integer status : taggedNullProbability.keySet()) {
             double[] sol = ComputeNullProbability.computeTableAndFileNullProbability(taggedSizeInfo.get(status)[0],
                     taggedSizeInfo.get(status)[1], taggedNullProbability.get(status));
-            tableAndFileNullProbability.put(status, sol);
+            tableAndFileNullProbability.get(0).put(status, sol[0]);
+            tableAndFileNullProbability.get(1).put(status, sol[1]);
         }
         return tableAndFileNullProbability;
     }

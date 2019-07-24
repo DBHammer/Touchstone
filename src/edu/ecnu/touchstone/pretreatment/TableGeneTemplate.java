@@ -148,14 +148,14 @@ public class TableGeneTemplate implements Serializable{
 	//the can join sum for every fk join
 	private Map<String, Integer> fkJoinStatus;
 
-	//fk left join null probability for each fk and each join status
-	private Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability;
+	//fk left join null probability in file for each fk and each join status
+	private Map<String, Map<Integer, Double>> fkLeftJoinInFileNullProbability;
 
 	private Map<String, ReadOutJoinTable> fkReadOutJoinTables;
 
 
-	public void setFkLeftJoinNullProbability(Map<String, Map<Integer, double[]>> fkLeftJoinNullProbability) {
-		this.fkLeftJoinNullProbability = fkLeftJoinNullProbability;
+	public void setFkLeftJoinInFileNullProbability(Map<String, Map<Integer, Double>> fkLeftJoinInFileNullProbability) {
+		this.fkLeftJoinInFileNullProbability = fkLeftJoinInFileNullProbability;
 	}
 
 	public int getLeftOuterJoinTag() {
@@ -178,14 +178,14 @@ public class TableGeneTemplate implements Serializable{
 	}
 
 	public boolean hasLeftOuterJoinFk(){
-		return fkLeftJoinNullProbability==null;
+		return fkLeftJoinInFileNullProbability ==null;
 	}
 
 	public void setReadOutJoinTable(String joinTableOutputPath, Map<String,Integer> leftJoinTags) {
-		if(fkLeftJoinNullProbability!=null){
-			for (String pkName : fkLeftJoinNullProbability.keySet()) {
+		if(fkLeftJoinInFileNullProbability !=null){
+			for (String pkName : fkLeftJoinInFileNullProbability.keySet()) {
 				ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(joinTableOutputPath + pkName,
-						fkLeftJoinNullProbability.get(pkName), leftJoinTags.get(pkName));
+						fkLeftJoinInFileNullProbability.get(pkName), leftJoinTags.get(pkName));
 				new Thread(readOutJoinTable).start();
 				fkReadOutJoinTables.put(pkName, readOutJoinTable);
 			}
@@ -324,7 +324,7 @@ public class TableGeneTemplate implements Serializable{
 		this.leftOuterJoinTag=template.leftOuterJoinTag;
 		this.leftJoinNullProbability= template.leftJoinNullProbability;
 		this.fkJoinStatus=template.fkJoinStatus;
-		this.fkLeftJoinNullProbability=template.fkLeftJoinNullProbability;
+		this.fkLeftJoinInFileNullProbability =template.fkLeftJoinInFileNullProbability;
 		this.fkReadOutJoinTables=null;
 		this.writeOutJoinTable= null;
 		this.pkJoinInfoFileSize= null;
@@ -418,10 +418,13 @@ public class TableGeneTemplate implements Serializable{
 		} // for chains
 
 		// generate left join keys
-		if (fkLeftJoinNullProbability != null) {
+		if (fkLeftJoinInFileNullProbability != null) {
 			for (Entry<String, Integer> joinInfo : fkJoinStatusesMap.entrySet()) {
 				if (fkReadOutJoinTables.containsKey(joinInfo.getKey())) {
 					long[] fkValues = fkReadOutJoinTables.get(joinInfo.getKey()).getJoinKey(joinInfo.getValue());
+					if(fkValues==null){
+						continue;
+					}
 					String[] rpkNames = rpkStrToArray.get(joinInfo.getKey());
 					for (int i = 0; i < rpkNames.length; i++) {
 						attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[i]), fkValues[i] + "");

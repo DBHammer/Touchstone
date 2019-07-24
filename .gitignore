@@ -103,3 +103,4 @@ bin/
 data/
 joinTable/
 touchstone.iml
+!lib/*

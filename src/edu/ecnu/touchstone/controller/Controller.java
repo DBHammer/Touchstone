@@ -120,6 +120,7 @@ public class Controller {
 
 			List<String> referencedKeys = template.getReferencedKeys();
 			Map<String, Map<Integer, ArrayList<long[]>>> fksJoinInfo = new HashMap<String, Map<Integer, ArrayList<long[]>>>();
+			Map<String, Map<Integer, Integer>> leftJoinSize =new HashMap<>();
 			Map<String, Map<Integer, Double>> fkJoinInfoInFileNullProbability=new HashMap<>();
 			Map<String, Integer> fkJoinStatus=template.getFkJoinStatus();
 			for (int j = 0; j < referencedKeys.size(); j++) {
@@ -148,6 +149,11 @@ public class Controller {
 							}
 						}
 						fksJoinInfo.put(rpkAttName,fkJoinInfoAfterNull);
+						Map<Integer,Integer> joinSize =new HashMap<>();
+						for (Integer status : fkJoinInfoAfterNull.keySet()) {
+							joinSize.put(status,fkJoinInfoAfterNull.get(status).size());
+						}
+						leftJoinSize.put(rpkAttName,joinSize);
 					} catch (JOptimizerException e) {
 						e.printStackTrace();
 					}
@@ -162,6 +168,9 @@ public class Controller {
 				}
 			}
 			template.setFksJoinInfo(fksJoinInfo);
+			if(leftJoinSize.size()!=0){
+				template.setFkLeftJoinInfoInMemorySize(leftJoinSize);
+			}
 			if(fkJoinInfoInFileNullProbability.size()!=0){
 				template.setFkLeftJoinInFileNullProbability(fkJoinInfoInFileNullProbability);
 			}

@@ -7,6 +7,7 @@ import edu.ecnu.touchstone.queryinstantiation.Parameter;
 import edu.ecnu.touchstone.run.Statistic;
 import edu.ecnu.touchstone.run.Touchstone;
 import edu.ecnu.touchstone.schema.Attribute;
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.log4j.Logger;
 
 import java.io.Serializable;
@@ -151,6 +152,13 @@ public class TableGeneTemplate implements Serializable{
 	//fk left join null probability in file for each fk and each join status
 	private Map<String, Map<Integer, Double>> fkLeftJoinInFileNullProbability;
 
+
+	public void setFkLeftJoinInfoInMemorySize(Map<String, Map<Integer, Integer>> fkLeftJoinInfoInMemorySize) {
+		this.fkLeftJoinInfoInMemorySize = fkLeftJoinInfoInMemorySize;
+	}
+
+	private Map<String, Map<Integer, Integer>> fkLeftJoinInfoInMemorySize;
+
 	private Map<String, ReadOutJoinTable> fkReadOutJoinTables;
 
 
@@ -174,7 +182,7 @@ public class TableGeneTemplate implements Serializable{
 		if(leftOuterJoinTag!=0){
 			this.pkJoinInfoFileSize=new HashMap<>();
 			this.writeOutJoinTable = new WriteOutJoinTable(joinTableOutputPath);
-			new Thread(writeOutJoinTable).start();
+			TouchStoneThreadPool.getThreadPoolExecutor().submit(writeOutJoinTable);
 		}
 	}
 
@@ -192,7 +200,7 @@ public class TableGeneTemplate implements Serializable{
 					ReadOutJoinTable readOutJoinTable = new ReadOutJoinTable(
 							joinTableOutputPath + tableName +"_"+threadId+"_",
 							fkLeftJoinInFileNullProbability.get(pkName), leftJoinTags.get(tableName));
-					new Thread(readOutJoinTable).start();
+					TouchStoneThreadPool.getThreadPoolExecutor().submit(readOutJoinTable);
 					fkReadOutJoinTables.put(pkName, readOutJoinTable);
 				}
 			}
@@ -332,6 +340,7 @@ public class TableGeneTemplate implements Serializable{
 		this.leftJoinNullProbability= template.leftJoinNullProbability;
 		this.fkJoinStatus=template.fkJoinStatus;
 		this.fkLeftJoinInFileNullProbability =template.fkLeftJoinInFileNullProbability;
+		this.fkLeftJoinInfoInMemorySize = template.fkLeftJoinInfoInMemorySize;
 		this.fkReadOutJoinTables=null;
 		this.writeOutJoinTable= null;
 		this.pkJoinInfoFileSize= null;
@@ -471,16 +480,34 @@ public class TableGeneTemplate implements Serializable{
 			// in fact, the information here (fksJoinInfo) has been compressed, so it can not be done completely random
 			ArrayList<long[]> candidates = null;
 			cumulant = (int)(Math.random() * cumulant);
-			for (int i = 0; i < satisfiedFkJoinInfo.size(); i++) {
-				if (cumulant < satisfiedFkJoinInfo.get(i).getSize()) {
-					candidates = fksJoinInfo.get(entry.getKey()).get(satisfiedFkJoinInfo.get(i).getJoinStatuses());
+			for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
+				if (cumulant < joinStatusesSizePair.getSize()) {
+					candidates = fksJoinInfo.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
+					if (fkLeftJoinInfoInMemorySize == null ||
+							!fkLeftJoinInfoInMemorySize.get(entry.getKey()).
+									containsKey(joinStatusesSizePair.getJoinStatuses()) ||
+							fkLeftJoinInfoInMemorySize.get(entry.getKey()).
+									get(joinStatusesSizePair.getJoinStatuses()) == 0) {
+						long[] fkValues = candidates.get((int) (Math.random() * candidates.size()));
+						String[] rpkNames = rpkStrToArray.get(entry.getKey());
+						for (int j = 0; j < rpkNames.length; j++) {
+							attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[j]), fkValues[j] + "");
+						}
+					} else {
+						int index = fkLeftJoinInfoInMemorySize.get(
+								entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
+						int randomIndex = (int) (index * Math.random());
+						Collections.swap(candidates, randomIndex, index - 1);
+						fkLeftJoinInfoInMemorySize.get(entry.getKey()).
+								put(joinStatusesSizePair.getJoinStatuses(), index - 1);
+						long[] fkValues = candidates.get(index - 1);
+						String[] rpkNames = rpkStrToArray.get(entry.getKey());
+						for (int j = 0; j < rpkNames.length; j++) {
+							attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[j]), fkValues[j] + "");
+						}
+					}
 					break;
 				}
-			}
-			long[] fkValues = candidates.get((int)(Math.random() * candidates.size()));
-			String[] rpkNames = rpkStrToArray.get(entry.getKey());
-			for (int i = 0; i < rpkNames.length; i++) {
-				attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[i]), fkValues[i] + "");
 			}
 		}
 

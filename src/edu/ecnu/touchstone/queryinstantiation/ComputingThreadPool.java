@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.log4j.Logger;
 
 import edu.ecnu.touchstone.datatype.TSDataTypeInfo;
@@ -38,7 +39,7 @@ public class ComputingThreadPool {
 			ComputingThread computingThread = new ComputingThread(tasksList.get(i), 
 					parameterMap, maxIterations, requiredRelativeError);
 			computingThreads.add(computingThread);
-			new Thread(computingThread).start();
+			TouchStoneThreadPool.getThreadPoolExecutor().submit(computingThread);
 		}
 	}
 
@@ -113,6 +114,7 @@ class ComputingThread implements Runnable {
 		return inactive;
 	}
 
+	@Override
 	public void run() {
 		try {
 			while (true) {
@@ -209,7 +211,7 @@ class ComputingThread implements Runnable {
 		}
 
 		List<String> values = new ArrayList<String>();
-		values.add(new Double(paraValue).toString());
+		values.add(String.valueOf(paraValue));
 		long cardinality = (long)(task.getInputDataSize() * probability);
 		// 'constraint' is only used in non-equi join
 		String constraint = task.getExpression() + " " + operator + " " + new BigDecimal(paraValue).toPlainString();
@@ -285,7 +287,7 @@ class ComputingThread implements Runnable {
 		}
 
 		List<String> values = new ArrayList<String>();
-		values.add(new Double(bestValue).toString());
+		values.add(String.valueOf(bestValue));
 		long cardinality = (long)(task.getInputDataSize() * probability);
 		long deviation = (long)(task.getInputDataSize() * bestRelativeError);
 		String constraint = task.getExpression() + " " + operator + " " + new BigDecimal(bestValue).toPlainString();

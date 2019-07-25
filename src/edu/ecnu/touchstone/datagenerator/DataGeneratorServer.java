@@ -28,6 +28,7 @@ public class DataGeneratorServer implements Runnable {
 		logger = Logger.getLogger(Touchstone.class);
 	}
 
+
 	@Override
 	public void run() {
 		bind();

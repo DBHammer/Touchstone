@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 // count the errors of cardinality constraints for the generated database instance
 public class CardinalityTest {
+	public static final Pattern p = Pattern.compile("(#[\\d,]+#)");
 
 	public static void main(String[] args) throws Exception {
 		
@@ -58,7 +59,7 @@ public class CardinalityTest {
 			e.printStackTrace();
 		}
 		
-		Connection conn = getDBConnection(ip, port, dbName, userName, passwd);
+		Connection conn = getDatabaseConnection(ip, port, dbName, userName, passwd);
 		Statement stmt = conn.createStatement();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -92,7 +93,7 @@ public class CardinalityTest {
 					System.out.println(inputLine);
 				} else if (inputLine.startsWith("select")) {
 					if (inputLine.contains("#")) {
-						Pattern p = Pattern.compile("(#[\\d,]+#)");
+
 						Matcher m = p.matcher(inputLine);
 						while (m.find()) {
 							String paraInfo = m.group();
@@ -100,10 +101,10 @@ public class CardinalityTest {
 							int id = Integer.parseInt(arr[0]);
 							int index = Integer.parseInt(arr[1]);
 							String paraStr = parameterMap.get(id)[index];
-							if (arr[2].equals("0")) {
+							if ("0".equals(arr[2])) {
 								inputLine = inputLine.replaceAll(paraInfo, paraStr);
-							} else if(arr[2].equals("1")) {
-								inputLine = inputLine.replaceAll(paraInfo, sdf.format(new Date(new Double(paraStr).longValue())));
+							} else if("1".equals(arr[2])) {
+								inputLine = inputLine.replaceAll(paraInfo, sdf.format(new Date(Long.parseLong(paraStr))));
 							}
 						}
 					}
@@ -166,8 +167,8 @@ public class CardinalityTest {
 		}
 	}
 
-	private static Connection getDBConnection(String ip, String port, String dbName, 
-			String userName, String passwd) throws Exception {
+	private static Connection getDatabaseConnection(String ip, String port, String dbName,
+													String userName, String passwd) throws Exception {
 		String driver = "com.mysql.jdbc.Driver";
 		String url = "jdbc:mysql://" + ip + ":" + port + "/" + dbName;
 		Class.forName(driver);

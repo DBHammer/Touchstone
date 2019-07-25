@@ -28,7 +28,8 @@ public class TSReal implements TSDataTypeInfo {
 		this.min = tsReal.min;
 		this.max = tsReal.max;
 	}
-	
+
+	@Override
 	public Double geneData() {
 		if (Math.random() < nullRatio) {
 			return null;

@@ -9,7 +9,6 @@ import com.joptimizer.optimizers.OptimizationRequest;
 import edu.ecnu.touchstone.run.Touchstone;
 import org.apache.log4j.Logger;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -40,7 +39,7 @@ public class ComputeNullProbability {
                     size[0] += sizeInfo.getValue()[0];
                     size[1] += sizeInfo.getValue()[1];
                 } else {
-                    taggedSizeInfo.put(taggedStatus, Arrays.copyOf(sizeInfo.getValue(),sizeInfo.getValue().length));
+                    taggedSizeInfo.put(taggedStatus, Arrays.copyOf(sizeInfo.getValue(), sizeInfo.getValue().length));
                 }
             }
         }
@@ -65,7 +64,12 @@ public class ComputeNullProbability {
             double[] sol = computeTableAndFileNullProbability(taggedSizeInfo.get(status)[0],
                     taggedSizeInfo.get(status)[1], taggedNullProbability.get(status));
             tableAndFileNullProbability.get(0).put(status, sol[0]);
-            tableAndFileNullProbability.get(1).put(status, sol[1]);
+            if(sol.length==2){
+                tableAndFileNullProbability.get(1).put(status, sol[1]);
+            }
+        }
+        if(tableAndFileNullProbability.get(1).size()==0){
+            tableAndFileNullProbability.remove(1);
         }
         return tableAndFileNullProbability;
     }
@@ -246,7 +250,12 @@ public class ComputeNullProbability {
         JOptimizer opt = new JOptimizer();
         opt.setOptimizationRequest(or);
         opt.optimize();
-        return opt.getOptimizationResponse().getSolution();
+        double[] sol = opt.getOptimizationResponse().getSolution();
+        if (fileKeySize == 0) {
+            return new double[]{sol[0]};
+        } else {
+            return sol;
+        }
     }
 
     private static String formatLog(double[][] p,

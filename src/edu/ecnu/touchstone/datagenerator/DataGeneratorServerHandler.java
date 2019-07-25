@@ -18,16 +18,22 @@ public class DataGeneratorServerHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		TableGeneTemplate template = (TableGeneTemplate)msg;
+		String response;
 		if("exitProcess".equals(template.getTableName())){
-			System.exit(0);
-		}
-		DataGenerator.addTemplate(template);
+			logger.info("receive exit signal, is closing thread pool");
+			response ="It's the response of the data generator: existing";
+			DataGenerator.makeDataGeneratorBeginToExist();
+			ctx.writeAndFlush(response);
+		}else {
+			DataGenerator.addTemplate(template);
 
-		logger.info("\n\tData generator has recieved a table generation template where the table name is " + 
-				template.getTableName() + "!");
-		String response = "It's the response of the data generator: The table name of received template is " + 
-				template.getTableName() + "!";
-		ctx.writeAndFlush(response);
+			logger.info("\n\tData generator has recieved a table generation template where the table name is " +
+					template.getTableName() + "!");
+			response = "It's the response of the data generator: The table name of received template is " +
+					template.getTableName() + "!";
+			ctx.writeAndFlush(response);
+		}
+
 	}
 
 	@Override

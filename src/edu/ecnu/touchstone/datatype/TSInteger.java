@@ -201,10 +201,12 @@ public class TSInteger implements TSDataTypeInfo {
 		return indexProbabilityMap;
 	}
 	
+	@Override
 	public double getMinValue() {
 		return min;
 	}
 
+	@Override
 	public double getMaxValue() {
 		return max;
 	}

@@ -1,10 +1,10 @@
 package edu.ecnu.touchstone.outerjoin;
 
 import edu.ecnu.touchstone.run.Touchstone;
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.log4j.Logger;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,14 +67,14 @@ public class ReadOutJoinTable implements Runnable {
                 joinInfo.getValue().subList(0, (int) (statusNullProbability.get(joinInfo.getKey() & leftOuterTag)
                         * joinInfo.getValue().size())).clear();
             }
-            logger.debug("read join info complete, the file is"+joinTableReadPath + readIndex);
+            logger.debug("read join info complete, the file is" + joinTableReadPath + readIndex);
             return readJoinInfo;
         } catch (FileNotFoundException e) {
             logger.debug("file read end or file path error");
             return new HashMap<>(16);
-        }catch (IOException | ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             logger.error(e);
-            logger.error("error path is"+joinTableReadPath + readIndex);
+            logger.error("error path is" + joinTableReadPath + readIndex);
             return new HashMap<>(16);
         }
     }
@@ -108,29 +108,35 @@ public class ReadOutJoinTable implements Runnable {
         } else {
             //找到值最多的list
             for (Map.Entry<Integer, List<long[]>> joinInfo : joinInfoInMemory.entrySet()) {
-                if ((status & joinInfo.getKey()) == joinInfo.getKey() && joinInfo.getValue().size() >= keys.size()) {
-                    keys = joinInfo.getValue();
+                if ((status & joinInfo.getKey()) == joinInfo.getKey()) {
+                    if (keys == null || joinInfo.getValue().size() >= keys.size()) {
+                        keys = joinInfo.getValue();
+                    }
                 }
             }
         }
-        if(keys==null){
+        if (keys == null) {
             return null;
         }
-        if(readCompleted && keys.size()==0){
+        if (readCompleted && keys.size() == 0) {
             return null;
-        }else {
+        } else {
             //如果内存中joinTable值不足，则异步拉取新的joinInfo
             if (!readCompleted && !asynchronousMerging && keys.size() < minSizeofJoinStatus) {
                 asynchronousMerging = true;
-                new Thread(() -> {
+                TouchStoneThreadPool.getThreadPoolExecutor().submit(() -> {
                     try {
                         takeAndMerge();
                     } catch (InterruptedException e) {
                         logger.error(e);
                     }
-                }).start();
+                });
             }
-            return keys.remove(0);
+            try {
+                return keys.remove(0);
+            } catch (Exception e) {
+                return null;
+            }
         }
     }
 

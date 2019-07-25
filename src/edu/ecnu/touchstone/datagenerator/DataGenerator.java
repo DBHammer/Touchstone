@@ -7,13 +7,12 @@ import edu.ecnu.touchstone.pretreatment.TableGeneTemplate;
 import edu.ecnu.touchstone.run.Configurations;
 import edu.ecnu.touchstone.run.Statistic;
 import edu.ecnu.touchstone.run.Touchstone;
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
 
 // in practice, multiple data generators are deployed in general
 // main functions: generate data, maintain join information of the primary key
@@ -48,12 +48,13 @@ public class DataGenerator implements Runnable {
 	// it is used for sending 'pkJoinInfo'
 	private DataGeneratorClient client = null;
 
+
 	// store all 'pkJoinInfo's maintained by data generation threads
 	// firstly, merge locally, then send to controller
 	private static List<Map<Integer, ArrayList<long[]>>> pkJoinInfoList = null;
 
 	private static Map<Integer,Long> pkJoinInfoFileTotalSize =null;
-	
+
 	// control the time point of merging the join information of the primary key (pkJoinInfoList)
 	private static CountDownLatch countDownLatch = null;
 
@@ -75,7 +76,22 @@ public class DataGenerator implements Runnable {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-
+			//如果唤醒时发现，没有joinInfo，则关闭所有线程并退出
+			if(pkJoinInfoList.size()==0){
+				TouchStoneThreadPool.closeThreadPool();
+				try {
+					FileUtils.cleanDirectory(new File(configurations.getJoinTableOutputPath()));
+				} catch (IOException e) {
+					logger.error(e);
+				}
+				client.send(new HashMap<>());
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				System.exit(0);
+			}
 			logger.info("\n\tStart merging 'pkJoinInfoList' ...");
 			if(pkJoinInfoFileTotalSize.size()==0){
 				client.send(JoinInfoMerger.merge(pkJoinInfoList, configurations.getPkvsMaxSize()));
@@ -116,8 +132,9 @@ public class DataGenerator implements Runnable {
 		for (int i = 0; i < localThreadNum; i++) {
 			templateQueues.add(new ArrayBlockingQueue<TableGeneTemplate>(1));
 			int threadId = count + i;
-			new Thread(new DataGenerationThread(templateQueues.get(i), threadId, allThreadNum, 
-					configurations.getDataOutputPath(),configurations.getJoinTableOutputPath())).start();
+			TouchStoneThreadPool.getThreadPoolExecutor().submit(
+					new DataGenerationThread(templateQueues.get(i), threadId, allThreadNum,
+					configurations.getDataOutputPath(),configurations.getJoinTableOutputPath()));
 		}
 		logger.info("\n\tAll data generation threads startup successful!");
 	}
@@ -129,10 +146,9 @@ public class DataGenerator implements Runnable {
 		int serverPort = configurations.getDataGeneratorPorts().get(generatorId);
 		String controllerIp = configurations.getControllerIp();
 		int controllerPort = configurations.getControllerPort();
-
-		new Thread(new DataGeneratorServer(serverPort)).start();
+		TouchStoneThreadPool.getThreadPoolExecutor().submit(new DataGeneratorServer(serverPort));
 		client = new DataGeneratorClient(controllerIp, controllerPort);
-		new Thread(client).start();
+		TouchStoneThreadPool.getThreadPoolExecutor().submit(client);
 	}
 	
 	// it's called by 'DataGeneratorServerHandler' when receiving a data generation task (template)
@@ -146,6 +162,13 @@ public class DataGenerator implements Runnable {
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		}
+	}
+
+	public static void makeDataGeneratorBeginToExist(){
+		long count=countDownLatch.getCount();
+		for (long i = 0; i < count; i++) {
+			countDownLatch.countDown();
 		}
 	}
 
@@ -175,7 +198,7 @@ public class DataGenerator implements Runnable {
 		// in a JVM, you can only have one data generator
 		// because there are some static attributes in class 'DataGenerator'
 		for (int i = 0; i < configurations.getDataGeneratorIps().size(); i++) {
-			new Thread(new DataGenerator(configurations, i)).start();
+			TouchStoneThreadPool.getThreadPoolExecutor().submit(new DataGenerator(configurations, i));
 		}
 	}
 }
@@ -236,7 +259,6 @@ class DataGenerationThread implements Runnable {
 				}
 				bw.close();
 				template.stopAllFileThread();
-				template.printNum();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -30,7 +30,7 @@ public class DataGeneratorClient implements Runnable {
 	
 	// the message channel that is created after the link is established
 	private static Channel channel = null;
-	
+
 	public DataGeneratorClient(String host, int port) {
 		this.host = host;
 		this.port = port;
@@ -41,6 +41,7 @@ public class DataGeneratorClient implements Runnable {
 	public void run() {
 		connect();
 	}
+
 	
 	// build link
 	private void connect() {

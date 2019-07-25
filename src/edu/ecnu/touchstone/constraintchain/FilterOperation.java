@@ -157,7 +157,7 @@ public class FilterOperation implements Serializable {
 			if (value.equals("null")) {
 				return false;
 			}
-			variables.get(i).setValue(new Double(value));
+			variables.get(i).setValue(Double.parseDouble(value));
 		}
 		return exp.evaluate() == 0 ? false : true;
 	}

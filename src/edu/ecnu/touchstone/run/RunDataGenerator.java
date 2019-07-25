@@ -14,6 +14,6 @@ public class RunDataGenerator {
 		PropertyConfigurator.configure(configurations.getLog4jConfFile());
 		
 		int generatorId = Integer.parseInt(args[1]);
-		new Thread(new DataGenerator(configurations, generatorId)).start();
+		new DataGenerator(configurations, generatorId).run();
 	}
 }

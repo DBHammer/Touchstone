@@ -13,6 +13,8 @@ import edu.ecnu.touchstone.run.Configurations;
 import edu.ecnu.touchstone.run.Touchstone;
 import edu.ecnu.touchstone.schema.SchemaReader;
 import edu.ecnu.touchstone.schema.Table;
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadFactory;
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -50,6 +52,7 @@ public class Controller {
 	// they are used for sending data generation task
 	private List<ControllerClient> clients = null;
 
+
 	// store all 'pkJoinInfo's received from data generators
 	private static List<Map<Integer, ArrayList<long[]>>> pkJoinInfoList = null;
 
@@ -60,14 +63,14 @@ public class Controller {
 	// server: receive the join information of the primary key (pkJoinInfo)
 	// clients: send the data generation task
 	public void setUpNetworkThreads() {
-		new Thread(new ControllerServer(configurations.getControllerPort())).start();
+		TouchStoneThreadPool.getThreadPoolExecutor().submit(new ControllerServer(configurations.getControllerPort()));
 
 		clients = new ArrayList<ControllerClient>();
 		List<String> dataGeneratorIps = configurations.getDataGeneratorIps();
 		List<Integer> dataGeneratorPorts = configurations.getDataGeneratorPorts();
 		for (int i = 0; i < dataGeneratorIps.size(); i++) {
 			ControllerClient client = new ControllerClient(dataGeneratorIps.get(i), dataGeneratorPorts.get(i));
-			new Thread(client).start();
+			TouchStoneThreadPool.getThreadPoolExecutor().submit(client);
 			clients.add(client);
 		}
 	}
@@ -128,7 +131,9 @@ public class Controller {
 						List<Map<Integer, Double>> nullProbability = ComputeNullProbability.computeTableAndFileNullProbability(
 								tableGeneTemplateMap.get(rpkTableName).getLeftJoinNullProbability(),
 								neededLeftJoinSize.get(rpkAttName), leftJoinTag);
-						fkJoinInfoInFileNullProbability.put(rpkAttName, nullProbability.get(1));
+						if(nullProbability.size()>1){
+							fkJoinInfoInFileNullProbability.put(rpkAttName, nullProbability.get(1));
+						}
 						Map<Integer, ArrayList<long[]>> fkJoinInfoAfterNull = new HashMap<>();
 						for (Entry<Integer, ArrayList<long[]>> joinInfo : neededPKJoinInfo.get(rpkAttName).entrySet()) {
 							fkJoinInfoAfterNull.put(joinInfo.getKey(), new ArrayList<>(joinInfo.getValue()));
@@ -202,10 +207,28 @@ public class Controller {
 
 		long endTime = System.currentTimeMillis();
 		logger.info("\n\tTime of data generation: " + (endTime - startTime) + "ms");
+	}
+
+	public void closeAllDataGenerator(){
 		TableGeneTemplate exitSignal=new TableGeneTemplate();
+		countDownLatch = new CountDownLatch(configurations.getDataGeneratorIps().size());
 		for (ControllerClient client : clients) {
 			client.send(exitSignal);
 		}
+
+		logger.info("exit signal send success");
+		// wait for all data generators to return the join information of primary key
+		try {
+			countDownLatch.await();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		logger.info("all data generator has existed");
+		System.exit(0);
+	}
+
+	public static void anDataGeneratorHasExited(){
+		countDownLatch.countDown();
 	}
 
 	private void waitClientsConnected() {
@@ -273,6 +296,5 @@ public class Controller {
 		Controller controller = new Controller(tablePartialOrder, tableGeneTemplateMap, configurations);
 		controller.setUpNetworkThreads();
 		controller.geneData();
-		
 	}
 }

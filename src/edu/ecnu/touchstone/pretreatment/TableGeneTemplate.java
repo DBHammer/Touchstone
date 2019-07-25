@@ -153,13 +153,6 @@ public class TableGeneTemplate implements Serializable{
 
 	private Map<String, ReadOutJoinTable> fkReadOutJoinTables;
 
-	int memoryNum;
-	int fileNum;
-
-	public void printNum(){
-		System.out.println("memoryNum is"+memoryNum);
-		System.out.println("fileNum is"+fileNum);
-	}
 
 	public void setFkLeftJoinInFileNullProbability(Map<String, Map<Integer, Double>> fkLeftJoinInFileNullProbability) {
 		this.fkLeftJoinInFileNullProbability = fkLeftJoinInFileNullProbability;
@@ -186,11 +179,11 @@ public class TableGeneTemplate implements Serializable{
 	}
 
 	public boolean hasLeftOuterJoinFk(){
-		return fkLeftJoinInFileNullProbability !=null;
+		return fkLeftJoinInFileNullProbability!=null;
 	}
 
 	public void setReadOutJoinTable(String joinTableOutputPath,int threadId, Map<String,Integer> leftJoinTags) {
-		if(fkLeftJoinInFileNullProbability !=null){
+		if(fkLeftJoinInFileNullProbability!=null){
 			fkReadOutJoinTables=new HashMap<>();
 			for (String pkName : fkLeftJoinInFileNullProbability.keySet()) {
 				String tableName=pkName.substring(1).split("\\.")[0];
@@ -439,7 +432,6 @@ public class TableGeneTemplate implements Serializable{
 					if(fkValues==null){
 						continue;
 					}
-					fileNum++;
 					String[] rpkNames = rpkStrToArray.get(joinInfo.getKey());
 					for (int i = 0; i < rpkNames.length; i++) {
 						attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[i]), fkValues[i] + "");
@@ -485,7 +477,6 @@ public class TableGeneTemplate implements Serializable{
 					break;
 				}
 			}
-			memoryNum++;
 			long[] fkValues = candidates.get((int)(Math.random() * candidates.size()));
 			String[] rpkNames = rpkStrToArray.get(entry.getKey());
 			for (int i = 0; i < rpkNames.length; i++) {

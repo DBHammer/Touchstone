@@ -21,11 +21,14 @@ public class ControllerServerHandler extends ChannelInboundHandlerAdapter {
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		@SuppressWarnings("unchecked")
 		Map<Integer, ArrayList<long[]>> pkJoinInfo = (Map<Integer, ArrayList<long[]>>)msg;
-		Controller.receivePkJoinInfo(pkJoinInfo);
-		
-		logger.info("\n\tController receives a 'pkJoinInfo' from a data generator!");
-		String response = "It's a response of the controller: I has received a 'pkJoinInfo' from you!";
-		ctx.writeAndFlush(response);
+		if(pkJoinInfo.size()==0){
+			Controller.anDataGeneratorHasExited();
+		}else {
+			Controller.receivePkJoinInfo(pkJoinInfo);
+			logger.info("\n\tController receives a 'pkJoinInfo' from a data generator!");
+			String response = "It's a response of the controller: I has received a 'pkJoinInfo' from you!";
+			ctx.writeAndFlush(response);
+		}
 	}
 
 	@Override

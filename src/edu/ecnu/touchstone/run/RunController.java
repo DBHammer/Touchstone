@@ -3,6 +3,7 @@ package edu.ecnu.touchstone.run;
 import java.util.List;
 import java.util.Map;
 
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.log4j.PropertyConfigurator;
 
 import edu.ecnu.touchstone.constraintchain.ConstraintChain;
@@ -57,7 +58,6 @@ public class RunController {
 		Controller controller = new Controller(tablePartialOrder, tableGeneTemplateMap, configurations);
 		controller.setUpNetworkThreads();
 		controller.geneData();
-		//程序退出
-		System.exit(0);
+		controller.closeAllDataGenerator();
 	}
 }

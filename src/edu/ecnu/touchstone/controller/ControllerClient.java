@@ -37,6 +37,7 @@ public class ControllerClient implements Runnable {
 		logger = Logger.getLogger(Touchstone.class);
 	}
 
+
 	@Override
 	public void run() {
 		connect();

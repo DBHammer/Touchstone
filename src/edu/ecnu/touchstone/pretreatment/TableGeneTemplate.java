@@ -152,15 +152,19 @@ public class TableGeneTemplate implements Serializable{
 	//fk left join null probability in file for each fk and each join status
 	private Map<String, Map<Integer, Double>> fkLeftJoinInFileNullProbability;
 
+	//fk left join null size
+	private Map<String, Map<Integer, Integer>> fkLeftJoinInfoInMemorySize;
+
+	//fk index for the thread
+	private Map<String, Map<Integer, Integer>> fkLeftJoinInfoExsitIndex;
+
+	private int fkStepLength;
+
+	private Map<String, ReadOutJoinTable> fkReadOutJoinTables;
 
 	public void setFkLeftJoinInfoInMemorySize(Map<String, Map<Integer, Integer>> fkLeftJoinInfoInMemorySize) {
 		this.fkLeftJoinInfoInMemorySize = fkLeftJoinInfoInMemorySize;
 	}
-
-	private Map<String, Map<Integer, Integer>> fkLeftJoinInfoInMemorySize;
-
-	private Map<String, ReadOutJoinTable> fkReadOutJoinTables;
-
 
 	public void setFkLeftJoinInFileNullProbability(Map<String, Map<Integer, Double>> fkLeftJoinInFileNullProbability) {
 		this.fkLeftJoinInFileNullProbability = fkLeftJoinInFileNullProbability;
@@ -188,6 +192,18 @@ public class TableGeneTemplate implements Serializable{
 
 	public boolean hasLeftOuterJoinFk(){
 		return fkLeftJoinInFileNullProbability!=null;
+	}
+
+	public void setFkLeftJoinInfoExitIndex(int startIndex,int stepLength){
+		fkLeftJoinInfoExsitIndex =new HashMap<>();
+		for (Entry<String, Map<Integer, Integer>> mapEntry : fkLeftJoinInfoInMemorySize.entrySet()) {
+			Map<Integer, Integer> mapSize = new HashMap<>();
+			for (Integer status : mapEntry.getValue().keySet()) {
+				mapSize.put(status,startIndex);
+			}
+			fkLeftJoinInfoExsitIndex.put(mapEntry.getKey(), mapSize);
+		}
+		fkStepLength=stepLength;
 	}
 
 	public void setReadOutJoinTable(String joinTableOutputPath,int threadId, Map<String,Integer> leftJoinTags) {
@@ -341,13 +357,17 @@ public class TableGeneTemplate implements Serializable{
 		this.fkJoinStatus=template.fkJoinStatus;
 		this.fkLeftJoinInFileNullProbability =template.fkLeftJoinInFileNullProbability;
 		this.fkLeftJoinInfoInMemorySize = template.fkLeftJoinInfoInMemorySize;
-		this.fkReadOutJoinTables=null;
-		this.writeOutJoinTable= null;
-		this.pkJoinInfoFileSize= null;
-		
+
 		// shallow copy
 		this.fksJoinInfo = template.fksJoinInfo;
 		init();
+
+		//no copy
+		this.fkReadOutJoinTables=null;
+		this.writeOutJoinTable= null;
+		this.pkJoinInfoFileSize= null;
+		this.fkStepLength = 0;
+		this.fkLeftJoinInfoExsitIndex = null;
 	}
 
 	// generate a tuple
@@ -483,24 +503,23 @@ public class TableGeneTemplate implements Serializable{
 			for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
 				if (cumulant < joinStatusesSizePair.getSize()) {
 					candidates = fksJoinInfo.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
-					if (fkLeftJoinInfoInMemorySize == null ||
-							!fkLeftJoinInfoInMemorySize.get(entry.getKey()).
-									containsKey(joinStatusesSizePair.getJoinStatuses()) ||
-							fkLeftJoinInfoInMemorySize.get(entry.getKey()).
-									get(joinStatusesSizePair.getJoinStatuses()) == 0) {
-						long[] fkValues = candidates.get((int) (Math.random() * candidates.size()));
+					int maxSize = fkLeftJoinInfoInMemorySize.get(entry.getKey()).
+							get(joinStatusesSizePair.getJoinStatuses());
+					if (fkLeftJoinInfoExsitIndex != null && maxSize > fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+									get(joinStatusesSizePair.getJoinStatuses())) {
+						int index = fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+								get(joinStatusesSizePair.getJoinStatuses());
+						int randomIndex = (int) ((maxSize - index) / fkStepLength * Math.random());
+						Collections.swap(candidates, randomIndex * fkStepLength + index, index);
+						fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+								put(joinStatusesSizePair.getJoinStatuses(), index + fkStepLength);
+						long[] fkValues = candidates.get(index);
 						String[] rpkNames = rpkStrToArray.get(entry.getKey());
 						for (int j = 0; j < rpkNames.length; j++) {
 							attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[j]), fkValues[j] + "");
 						}
 					} else {
-						int index = fkLeftJoinInfoInMemorySize.get(
-								entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
-						int randomIndex = (int) (index * Math.random());
-						Collections.swap(candidates, randomIndex, index - 1);
-						fkLeftJoinInfoInMemorySize.get(entry.getKey()).
-								put(joinStatusesSizePair.getJoinStatuses(), index - 1);
-						long[] fkValues = candidates.get(index - 1);
+						long[] fkValues = candidates.get((int) (Math.random() * candidates.size()));
 						String[] rpkNames = rpkStrToArray.get(entry.getKey());
 						for (int j = 0; j < rpkNames.length; j++) {
 							attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[j]), fkValues[j] + "");
@@ -622,7 +641,7 @@ public class TableGeneTemplate implements Serializable{
 			String str = new StringBuilder(Integer.toBinaryString(i)).reverse().toString();
 			boolean[] joinStatuses = new boolean[order + 1];
 			for (int j = 0; j < str.length(); j++) {
-				joinStatuses[j] = str.charAt(j) == '1'? true : false;
+				joinStatuses[j] = str.charAt(j) == '1';
 			}
 			for(int j = str.length(); j < order + 1; j++) {
 				joinStatuses[j] = false;

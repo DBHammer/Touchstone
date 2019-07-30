@@ -33,9 +33,14 @@ public class ReadOutJoinTable implements Runnable {
 
     private static int minSizeofJoinStatus;
     private static int maxNumOfJoinInfoInMemory;
+    private static int maxSizeOfJoinInfo;
 
     private boolean readCompleted;
     private boolean asynchronousMerging;
+
+    public static void setMaxSizeOfJoinInfo(int maxSizeOfJoinInfo) {
+        ReadOutJoinTable.maxSizeOfJoinInfo = maxSizeOfJoinInfo;
+    }
 
     public static void setMinSizeofJoinStatus(int minSizeofJoinStatus) {
         ReadOutJoinTable.minSizeofJoinStatus = minSizeofJoinStatus;
@@ -80,6 +85,9 @@ public class ReadOutJoinTable implements Runnable {
     }
 
     private void takeAndMerge() throws InterruptedException {
+        if(joinInfoInMemory.size()>maxSizeOfJoinInfo){
+            return;
+        }
         Map<Integer, List<long[]>> readJoinInfo = joinInfoQueue.take();
         if (readJoinInfo.size() == 0) {
             readCompleted = true;

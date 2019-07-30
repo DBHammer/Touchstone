@@ -47,24 +47,30 @@ public class Configurations {
 	private int pkvsMaxSize;
 
 	// outer join file thread config
-	private int maxSizeofJoinInfoInMemory;
-	private int minSizeofJoinInfoStatus;
-	private int maxNumofJoinInfoInMemory;
+	private int maxSizeofJoinInfoInMemoryToWrite;
 
+	private int maxSizeofJoinInfoInMemoryToRead;
+
+	private int minSizeofJoinInfoStatus;
+	private int maxCountJoinInfoInMemory;
 	public Configurations(String confFilePath) {
 		read(confFilePath);
 	}
 
-	public int getMaxSizeofJoinInfoInMemory() {
-		return maxSizeofJoinInfoInMemory;
+	public int getMaxSizeofJoinInfoInMemoryToRead() {
+		return maxSizeofJoinInfoInMemoryToRead;
+	}
+
+	public int getMaxSizeofJoinInfoInMemoryToWrite() {
+		return maxSizeofJoinInfoInMemoryToWrite;
 	}
 
 	public int getMinSizeofJoinInfoStatus() {
 		return minSizeofJoinInfoStatus;
 	}
 
-	public int getMaxNumofJoinInfoInMemory() {
-		return maxNumofJoinInfoInMemory;
+	public int getMaxCountJoinInfoInMemory() {
+		return maxCountJoinInfoInMemory;
 	}
 
 	private void read(String confFilePath) {
@@ -177,10 +183,13 @@ public class Configurations {
 					pkvsMaxSize = Integer.parseInt(arr[1]);
 					break;
 				case "maximum num of join table file in memory":
-					maxNumofJoinInfoInMemory = Integer.parseInt(arr[1]);
+					maxCountJoinInfoInMemory = Integer.parseInt(arr[1]);
 					break;
-				case "maximum size of join table in memory":
-					maxSizeofJoinInfoInMemory =Integer.parseInt(arr[1]);
+				case "maximum size of join table in memory to write":
+					maxSizeofJoinInfoInMemoryToWrite =Integer.parseInt(arr[1]);
+					break;
+				case "maximum size of join table in memory to read":
+					maxSizeofJoinInfoInMemoryToRead =Integer.parseInt(arr[1]);
 					break;
 				case "minimum size of join table status in memory":
 					minSizeofJoinInfoStatus =Integer.parseInt(arr[1]);

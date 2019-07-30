@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadPoolExecutor;
 
 // in practice, multiple data generators are deployed in general
 // main functions: generate data, maintain join information of the primary key
@@ -107,10 +106,11 @@ public class DataGenerator implements Runnable {
 	}
 
 	private void setUpFileThread(){
-        WriteOutJoinTable.setMaxSizeofJoinInfoInMemory(configurations.getMaxSizeofJoinInfoInMemory());
-        WriteOutJoinTable.setMaxNumInMemory(configurations.getMaxNumofJoinInfoInMemory());
-		ReadOutJoinTable.setMaxNumOfJoinInfoInMemory(configurations.getMaxNumofJoinInfoInMemory());
+        WriteOutJoinTable.setMaxSizeofJoinInfoInMemory(configurations.getMaxSizeofJoinInfoInMemoryToWrite());
+        WriteOutJoinTable.setMaxNumInMemory(configurations.getMaxCountJoinInfoInMemory());
+		ReadOutJoinTable.setMaxNumOfJoinInfoInMemory(configurations.getMaxCountJoinInfoInMemory());
 		ReadOutJoinTable.setMinSizeofJoinStatus(configurations.getMinSizeofJoinInfoStatus());
+		ReadOutJoinTable.setMinSizeofJoinStatus(configurations.getMaxSizeofJoinInfoInMemoryToRead());
     }
 
 
@@ -126,7 +126,7 @@ public class DataGenerator implements Runnable {
 				count = allThreadNum;
 			}
 		}
-		
+
 		// set up all data generation threads
 		templateQueues = new ArrayList<ArrayBlockingQueue<TableGeneTemplate>>();
 		for (int i = 0; i < localThreadNum; i++) {

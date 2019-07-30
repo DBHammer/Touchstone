@@ -5,7 +5,7 @@ public class runDataOnDatabase {
         MysqlConnector mysqlConnector=new MysqlConnector();
         try {
             mysqlConnector.createTables();
-            mysqlConnector.loadData();
+            mysqlConnector.loadData(4);
             mysqlConnector.executeRJoinS(1,500);
             mysqlConnector.executeRJoinS(1,400);
             mysqlConnector.executeRJoinS(2,300);
@@ -23,14 +23,14 @@ class MysqlConnector {
 
     public MysqlConnector() {
 
-        String dbUrl = "jdbc:mysql://biui.me/runForTidb?" +
+        String dbUrl = "jdbc:mysql://219.228.148.126/touchStone?" +
                 "useSSL=false&" +
                 "allowPublicKeyRetrieval=true&" +
                 "allowLoadLocalInfile=true";
 
         // 数据库的用户名与密码
-        String user = "qswang";
-        String pass = "Biui1227..";
+        String user = "root";
+        String pass = "123";
 
         try {
             conn = DriverManager.getConnection(dbUrl, user, pass);
@@ -69,11 +69,13 @@ class MysqlConnector {
     //表格相关操作
 
 
-    public void loadData() throws SQLException {
-        String sql = "load data CONCURRENT LOCAL INFILE 'data/r_0.txt' into table R COLUMNS TERMINATED BY ',' ";
-        executeSql(sql);
-        sql = "load data CONCURRENT LOCAL INFILE 'data/s_0.txt' into table S COLUMNS TERMINATED BY ',' ";
-        executeSql(sql);
+    public void loadData(int threadNum) throws SQLException {
+        for (int i = 0; i < threadNum; i++) {
+            String sql = "load data CONCURRENT LOCAL INFILE 'data/r_"+i+".txt' into table R COLUMNS TERMINATED BY ',' ";
+            executeSql(sql);
+            sql = "load data CONCURRENT LOCAL INFILE 'data/s_"+i+".txt' into table S COLUMNS TERMINATED BY ',' ";
+            executeSql(sql);
+        }
     }
 
     /**

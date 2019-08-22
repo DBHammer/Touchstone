@@ -1,6 +1,7 @@
 package edu.ecnu.touchstone.schema;
 
 import java.util.List;
+import java.util.Map;
 
 public class Table {
 	
@@ -9,6 +10,8 @@ public class Table {
 	
 	// support the composite primary key
 	private List<String> primaryKey = null;
+
+	private Map<String,Integer> keyIndex = null;
 	
 	// support multiple foreign keys
 	private List<ForeignKey> foreignKeys = null;
@@ -16,14 +19,19 @@ public class Table {
 	// 'attributes' doesn't include the key attributes
 	private List<Attribute> attributes = null;
 
+	public Map<String, Integer> getKeyIndex() {
+		return keyIndex;
+	}
+
 	public Table(String tableName, long tableSize, List<String> primaryKey, List<ForeignKey> foreignKeys,
-			List<Attribute> attributes) {
+				 List<Attribute> attributes, Map<String,Integer> keyIndex) {
 		super();
 		this.tableName = tableName;
 		this.tableSize = tableSize;
 		this.primaryKey = primaryKey;
 		this.foreignKeys = foreignKeys;
 		this.attributes = attributes;
+		this.keyIndex=keyIndex;
 	}
 	
 	public String getTableName() {

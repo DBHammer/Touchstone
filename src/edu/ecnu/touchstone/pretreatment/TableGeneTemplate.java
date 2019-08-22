@@ -380,16 +380,16 @@ public class TableGeneTemplate implements Serializable{
 		pkJoinStatuses = 0;
 
 		// generate all non-key attributes
-		for (int i = 0; i < attributes.size(); i++) {
-			tuple[keys.size() + i] = attributes.get(i).geneData();
-			attributeValueMap.put(attributes.get(i).getAttrName(), tuple[keys.size() + i]);
+		for (Attribute attribute : attributes) {
+			tuple[attribute.getIndex()] = attribute.geneData();
+			attributeValueMap.put(attribute.getAttrName(), tuple[attribute.getIndex()]);
 		}
 
 		// set the unique number to its location
-		for (int i = 0; i < keys.size(); i++) {
-			if (keys.get(i).getKeyType() == 0) {
-				tuple[i] = uniqueNum + "";
-				attributeValueMap.put(keys.get(i).getKeyName(), tuple[i]);
+		for (Key key : keys) {
+			if (key.getKeyType() == 0&&key.getIndex()>=0) {
+				tuple[key.getIndex()] = uniqueNum + "";
+				attributeValueMap.put(key.getKeyName(), tuple[key.getIndex()]);
 				// There is only one column with unique number in TPC-H, 
 				// but it's not for SSB (lineorder: lo_orderkey & lo_linenumber)
 				// ------
@@ -503,20 +503,22 @@ public class TableGeneTemplate implements Serializable{
 			for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
 				if (cumulant < joinStatusesSizePair.getSize()) {
 					candidates = fksJoinInfo.get(entry.getKey()).get(joinStatusesSizePair.getJoinStatuses());
-					int maxSize = fkLeftJoinInfoInMemorySize.get(entry.getKey()).
-							get(joinStatusesSizePair.getJoinStatuses());
-					if (fkLeftJoinInfoExsitIndex != null && maxSize > fkLeftJoinInfoExsitIndex.get(entry.getKey()).
-									get(joinStatusesSizePair.getJoinStatuses())) {
-						int index = fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+					if (fkLeftJoinInfoExsitIndex != null) {
+						int maxSize = fkLeftJoinInfoInMemorySize.get(entry.getKey()).
 								get(joinStatusesSizePair.getJoinStatuses());
-						int randomIndex = (int) ((maxSize - index) / fkStepLength * Math.random());
-						Collections.swap(candidates, randomIndex * fkStepLength + index, index);
-						fkLeftJoinInfoExsitIndex.get(entry.getKey()).
-								put(joinStatusesSizePair.getJoinStatuses(), index + fkStepLength);
-						long[] fkValues = candidates.get(index);
-						String[] rpkNames = rpkStrToArray.get(entry.getKey());
-						for (int j = 0; j < rpkNames.length; j++) {
-							attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[j]), fkValues[j] + "");
+						if (maxSize > fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+								get(joinStatusesSizePair.getJoinStatuses())) {
+							int index = fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+									get(joinStatusesSizePair.getJoinStatuses());
+							int randomIndex = (int) ((maxSize - index) / fkStepLength * Math.random());
+							Collections.swap(candidates, randomIndex * fkStepLength + index, index);
+							fkLeftJoinInfoExsitIndex.get(entry.getKey()).
+									put(joinStatusesSizePair.getJoinStatuses(), index + fkStepLength);
+							long[] fkValues = candidates.get(index);
+							String[] rpkNames = rpkStrToArray.get(entry.getKey());
+							for (int j = 0; j < rpkNames.length; j++) {
+								attributeValueMap.put(referKeyForeKeyMap.get(rpkNames[j]), fkValues[j] + "");
+							}
 						}
 					} else {
 						long[] fkValues = candidates.get((int) (Math.random() * candidates.size()));
@@ -530,9 +532,9 @@ public class TableGeneTemplate implements Serializable{
 			}
 		}
 
-		for (int i = 0; i < keys.size(); i++) {
-			if (keys.get(i).getKeyType() == 1) { // foreign key
-				tuple[i] = attributeValueMap.get(keys.get(i).getKeyName());
+		for (Key key : keys) {
+			if (key.getKeyType() == 1) { // foreign key
+				tuple[key.getIndex()] = attributeValueMap.get(key.getKeyName());
 			}
 		}
 
@@ -611,15 +613,14 @@ public class TableGeneTemplate implements Serializable{
 					continue;
 				}
 
-				int order = j;
-				List<FKJoinAdjustRule> rules = getRules(fkJoinNodes, order);
-				float probability = getProbability(fkJoinNodes, rules, order);
+				List<FKJoinAdjustRule> rules = getRules(fkJoinNodes, j);
+				float probability = getProbability(fkJoinNodes, rules, j);
 
 				if (probability < 0 || probability > 1) {
 					logger.error("probability is " + probability + ", adjustment is fail!");
 					return false;
 				} else {
-					FKJoinAdjustment fkJoinAdjustment = new FKJoinAdjustment(order, joinStatuses, rules, probability);
+					FKJoinAdjustment fkJoinAdjustment = new FKJoinAdjustment(j, joinStatuses, rules, probability);
 					fkJoinNodes.get(j).setFkJoinAdjustment(fkJoinAdjustment);
 					logger.debug("\n\tAdjustment of fkJoins " + j + ": " + fkJoinAdjustment);
 				}
@@ -842,16 +843,24 @@ class Key implements Serializable{
 	// 1: it's generated according to the its join statuses (it must be a foreign key)
 	private int keyType;
 
-	public Key(String keyName, int keyType) {
+	private int index;
+
+	public Key(String keyName, int keyType ,int index) {
 		super();
 		this.keyName = keyName;
 		this.keyType = keyType;
+		this.index=index;
+	}
+
+	public int getIndex() {
+		return index;
 	}
 
 	public Key(Key key) {
 		super();
 		this.keyName = key.keyName;
 		this.keyType = key.keyType;
+		this.index=key.index;
 	}
 
 	public String getKeyName() {

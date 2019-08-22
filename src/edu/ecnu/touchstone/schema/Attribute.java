@@ -17,21 +17,24 @@ public class Attribute implements Serializable {
 	
 	private String attrName = null;
 	private String dataType = null;
+	private int index;
 	
 	// information of basic data characteristics
 	private TSDataTypeInfo dataTypeInfo = null;
 
-	public Attribute(String attrName, String dataType, TSDataTypeInfo dataTypeInfo) {
+	public Attribute(String attrName, String dataType,int index, TSDataTypeInfo dataTypeInfo) {
 		super();
 		this.attrName = attrName;
 		this.dataType = dataType;
 		this.dataTypeInfo = dataTypeInfo;
+		this.index=index;
 	}
 	
 	public Attribute(Attribute attribute) {
 		super();
 		this.attrName = attribute.attrName;
 		this.dataType = attribute.dataType;
+		this.index=attribute.index;
 		switch (this.dataType) {
 		case "integer":
 			this.dataTypeInfo = new TSInteger((TSInteger)attribute.dataTypeInfo);
@@ -81,5 +84,9 @@ public class Attribute implements Serializable {
 	@Override
 	public String toString() {
 		return "\n\tAttribute [attrName=" + attrName + ", dataType=" + dataType + ", dataTypeInfo=" + dataTypeInfo + "]";
+	}
+
+	public int getIndex() {
+		return index;
 	}
 }

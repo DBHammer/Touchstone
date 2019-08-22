@@ -5,10 +5,11 @@ public class runDataOnDatabase {
         MysqlConnector mysqlConnector=new MysqlConnector();
         try {
             mysqlConnector.createTables();
-            mysqlConnector.loadData(4);
+            mysqlConnector.loadData(2);
             mysqlConnector.executeRJoinS(1,500);
             mysqlConnector.executeRJoinS(1,400);
             mysqlConnector.executeRJoinS(2,300);
+            mysqlConnector.executeMultiFilter();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -23,14 +24,15 @@ class MysqlConnector {
 
     public MysqlConnector() {
 
-        String dbUrl = "jdbc:mysql://219.228.148.126/touchStone?" +
+        String dbUrl = "jdbc:mysql://10.11.6.121:13306/touchStoneTest?" +
                 "useSSL=false&" +
                 "allowPublicKeyRetrieval=true&" +
-                "allowLoadLocalInfile=true";
+                "allowLoadLocalInfile=true&" +
+                "serverTimezone=UTC";
 
         // 数据库的用户名与密码
         String user = "root";
-        String pass = "123";
+        String pass = "root";
 
         try {
             conn = DriverManager.getConnection(dbUrl, user, pass);
@@ -48,6 +50,16 @@ class MysqlConnector {
             e.printStackTrace();
         }
     }
+
+    void executeMultiFilter() throws SQLException {
+        String multiFilter="select count(*) from R where R1 between 251.66559219360352 and 836.4691734313965" +
+                " and R4 LIKE '%3HN0YgH9hlEXe04ovv4r%' and R3 between '1994/7/6 4:4:16' and '1998/7/21 19:10:5'";
+        ResultSet rs=conn.createStatement().executeQuery(multiFilter);
+        rs.next();
+        int num = rs.getInt(1);
+        System.out.println(num);
+    }
+
 
     void executeRJoinS(int index , double value) throws SQLException {
         String sql="select count(*) from R left join S on R.R0=S.S1 where R.R"+index+">"+value+" and S.S0 is null";
@@ -87,7 +99,7 @@ class MysqlConnector {
         executeSql(sql);
         sql = "DROP TABLE IF EXISTS R";
         executeSql(sql);
-        sql="create table R(R0 int PRIMARY KEY,R1 int,R2 int);";
+        sql="create table R(R0 int PRIMARY KEY,R1 int,R2 int,R3 datetime,R4 VARCHAR(25));";
         executeSql(sql);
         sql="create table S(S0 int PRIMARY KEY,S1 int,foreign key (S1) references R(R0));";
         executeSql(sql);

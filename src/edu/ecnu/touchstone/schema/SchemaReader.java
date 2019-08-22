@@ -82,6 +82,7 @@ public class SchemaReader {
 			List<String> primaryKey = new ArrayList<String>();
 			List<ForeignKey> foreignKeys = new ArrayList<ForeignKey>();
 			List<Attribute> attributes = new ArrayList<Attribute>();
+			Map<String,Integer> keyIndex= new HashMap<>();
 
 			// record key attributes
 			Set<String> keys = new HashSet<String>();
@@ -115,6 +116,7 @@ public class SchemaReader {
 					String dataType = tableInfoArr[j].split(",")[1];
 					if (keys.contains(attrName)) {
 						if (dataType.equals("integer")) {
+							keyIndex.put(attrName,j-2);
 							continue;
 						} else {
 							logger.error("\n\tThe data type of primary key and foreign key must be integer! "
@@ -132,11 +134,11 @@ public class SchemaReader {
 						e.printStackTrace();
 						System.exit(0);
 					}
-					attributes.add(new Attribute(attrName, dataType, dataTypeInfo));
+					attributes.add(new Attribute(attrName, dataType, j-2, dataTypeInfo));
 				}
 			}
 			
-			tables.add(new Table(tableName, tableSize, primaryKey, foreignKeys, attributes));
+			tables.add(new Table(tableName, tableSize, primaryKey, foreignKeys, attributes, keyIndex));
 		}
 
 		logger.debug("\nThe schema of database instance (include the basic data characteristic): " + tables);

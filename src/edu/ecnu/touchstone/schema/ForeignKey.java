@@ -8,7 +8,8 @@ public class ForeignKey {
 	
 	// include the referenced table name
 	private String referencedKey = null;
-	
+
+
 	public ForeignKey(String attrName, String referencedKey) {
 		super();
 		this.attrName = attrName;

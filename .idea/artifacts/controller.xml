@@ -1,0 +1,31 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="controller">
+    <output-path>$PROJECT_DIR$/artifacts</output-path>
+    <root id="archive" name="controller.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/artifacts/controller/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="touchstone" />
+      <element id="library" level="module" name="log4j-1.2.17.jar" module-name="touchstone" />
+      <element id="library" level="module" name="mysql-connector-java-5.1.23-bin.jar" module-name="touchstone" />
+      <element id="library" level="module" name="ganymed-ssh2-build210.jar" module-name="touchstone" />
+      <element id="library" level="module" name="parsii.jar" module-name="touchstone" />
+      <element id="library" level="module" name="netty-all-4.1.15.Final.jar" module-name="touchstone" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/JLink.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/parsii.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/colt-1.2.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/log4j-1.2.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-io-2.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/joptimizer-5.0.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-lang3-3.5.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-logging-1.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-math3-3.6.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/ganymed-ssh2-build210.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/netty-all-4.1.5.Final.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/netty-all-4.1.15.Final.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-collections4-4.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/mysql-connector-java-8.0.16.jar" path-in-jar="/" />
+      <element id="library" level="module" name="JLink.jar" module-name="touchstone" />
+    </root>
+  </artifact>
+</component>

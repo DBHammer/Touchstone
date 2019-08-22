@@ -126,7 +126,10 @@ public class Controller {
 			for (int j = 0; j < referencedKeys.size(); j++) {
 				String rpkAttName=referencedKeys.get(j);
 				String rpkTableName=rpkAttName.substring(1,rpkAttName.length()-2).split("\\.")[0];
-				int leftJoinTag=fkJoinStatus.get(rpkAttName)&tableGeneTemplateMap.get(rpkTableName).getLeftOuterJoinTag();
+				int leftJoinTag=0;
+				if(fkJoinStatus.containsKey(rpkAttName)){
+					leftJoinTag = fkJoinStatus.get(rpkAttName)&tableGeneTemplateMap.get(rpkTableName).getLeftOuterJoinTag();
+				}
 				if(leftJoinTag!=0){
 					try {
 						List<Map<Integer, Double>> nullProbability = ComputeNullProbability.computeTableAndFileNullProbability(

@@ -116,14 +116,16 @@ public class Preprocessor {
 						continue loop;
 					}
 				}
-				keys.add(new Key(primaryKey.get(j), 0));
+				keys.add(new Key(primaryKey.get(j), 0,
+						table.getKeyIndex().get(primaryKey.get(j).split("\\.")[1])));
 			}
 			// add an attribute to ensure the uniqueness of the primary key
 			if (keys.size() == 0) {
-				keys.add(new Key("unique_number", 0));
+				keys.add(new Key("unique_number", 0,-1));
 			}
 			for (int j = 0; j < foreignKeys.size(); j++) {
-				keys.add(new Key(tableName + "." + foreignKeys.get(j).getAttrName(), 1));
+				keys.add(new Key(tableName + "." + foreignKeys.get(j).getAttrName(), 1,
+						table.getKeyIndex().get(foreignKeys.get(j).getAttrName())));
 			}
 
 			// tableConstraintChains

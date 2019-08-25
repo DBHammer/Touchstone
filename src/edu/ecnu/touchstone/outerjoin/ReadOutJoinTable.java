@@ -1,7 +1,6 @@
 package edu.ecnu.touchstone.outerjoin;
 
 import edu.ecnu.touchstone.run.Touchstone;
-import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -32,22 +31,22 @@ public class ReadOutJoinTable implements Runnable {
 
 
     private static int minSizeofJoinStatus;
-    private static int maxNumOfJoinInfoInMemory;
-    private static int maxSizeOfJoinInfo;
+    private static int maxNumOfJoinInfoInReadQueue;
+    private static int maxSizeOfJoinInfoInMemory;
+    private int currentSize;
 
     private boolean readCompleted;
-    private boolean asynchronousMerging;
 
-    public static void setMaxSizeOfJoinInfo(int maxSizeOfJoinInfo) {
-        ReadOutJoinTable.maxSizeOfJoinInfo = maxSizeOfJoinInfo;
+    public static void setMaxSizeOfJoinInfoInMemory(int maxSizeOfJoinInfoInMemory) {
+        ReadOutJoinTable.maxSizeOfJoinInfoInMemory = maxSizeOfJoinInfoInMemory;
     }
 
     public static void setMinSizeofJoinStatus(int minSizeofJoinStatus) {
         ReadOutJoinTable.minSizeofJoinStatus = minSizeofJoinStatus;
     }
 
-    public static void setMaxNumOfJoinInfoInMemory(int maxNumOfJoinInfoInMemory) {
-        ReadOutJoinTable.maxNumOfJoinInfoInMemory = maxNumOfJoinInfoInMemory;
+    public static void setMaxNumOfJoinInfoInReadQueue(int maxNumOfJoinInfoInReadQueue) {
+        ReadOutJoinTable.maxNumOfJoinInfoInReadQueue = maxNumOfJoinInfoInReadQueue;
     }
 
     private Map<Integer, Double> statusNullProbability;
@@ -58,19 +57,27 @@ public class ReadOutJoinTable implements Runnable {
         this.joinTableReadPath = joinTableReadPath;
         this.statusNullProbability = statusNullProbability;
         this.leftOuterTag = leftOuterTag;
-        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInMemory);
+        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInReadQueue);
         joinInfoInMemory = readOutJoinTable();
+        for (List<long[]> value : joinInfoInMemory.values()) {
+            currentSize += value.size();
+        }
     }
 
     private Map<Integer, List<long[]>> readOutJoinTable() {
+        Map<Integer, List<long[]>> readJoinInfo = new HashMap<>();
         try (ObjectInputStream joinTableOutputStream = new ObjectInputStream(new FileInputStream(
                 new File(joinTableReadPath + (++readIndex))))) {
             //If the read object is not a instance of joinTableInfo,
             // it maybe cause an error. But in fact it must not be.
-            Map<Integer, List<long[]>> readJoinInfo = (Map<Integer, List<long[]>>) joinTableOutputStream.readObject();
+            readJoinInfo = (Map<Integer, List<long[]>>) joinTableOutputStream.readObject();
             for (Map.Entry<Integer, List<long[]>> joinInfo : readJoinInfo.entrySet()) {
-                joinInfo.getValue().subList(0, (int) (statusNullProbability.get(joinInfo.getKey() & leftOuterTag)
-                        * joinInfo.getValue().size())).clear();
+                int clearIndex=(int)Math.round(statusNullProbability.get(joinInfo.getKey() & leftOuterTag)
+                        * joinInfo.getValue().size());
+                if(clearIndex==joinInfo.getValue().size()){
+                    clearIndex--;
+                }
+                joinInfo.getValue().subList(0, clearIndex).clear();
             }
             logger.debug("read join info complete, the file is" + joinTableReadPath + readIndex);
             return readJoinInfo;
@@ -81,36 +88,29 @@ public class ReadOutJoinTable implements Runnable {
             logger.error(e);
             logger.error("error path is" + joinTableReadPath + readIndex);
             return new HashMap<>(16);
-        }
-    }
-
-    private void takeAndMerge() throws InterruptedException {
-        if(joinInfoInMemory.size()>maxSizeOfJoinInfo){
-            return;
-        }
-        Map<Integer, List<long[]>> readJoinInfo = joinInfoQueue.take();
-        if (readJoinInfo.size() == 0) {
-            readCompleted = true;
-            asynchronousMerging = false;
-            return;
-        }
-        //merge read joinInfo into joinInfoInMemory
-        for (Map.Entry<Integer, List<long[]>> joinInfo : readJoinInfo.entrySet()) {
-            if (joinInfoInMemory.containsKey(joinInfo.getKey())) {
-                joinInfoInMemory.get(joinInfo.getKey()).addAll(joinInfo.getValue());
-            } else {
-                joinInfoInMemory.put(joinInfo.getKey(), joinInfo.getValue());
+        } catch (Exception e){
+            System.out.println(leftOuterTag);
+            System.out.println("key1");
+            for (Integer key : readJoinInfo.keySet()) {
+                System.out.println(key);
             }
+            System.out.println("key2");
+            for (Integer key : statusNullProbability.keySet()) {
+                System.out.println(key);
+            }
+            logger.error(e);
+            return new HashMap<>(16);
         }
-        asynchronousMerging = false;
     }
 
     /**
      * 根据status获取一个非重复的key，当该status获取完毕时，返回null
      */
     public long[] getJoinKey(Integer status) {
+        if (currentSize == 0) {
+            return null;
+        }
         List<long[]> keys = null;
-
         if (joinInfoInMemory.containsKey(status)) {
             keys = joinInfoInMemory.get(status);
         } else {
@@ -122,29 +122,43 @@ public class ReadOutJoinTable implements Runnable {
                     }
                 }
             }
-        }
-        if (keys == null) {
-            return null;
-        }
-        if (readCompleted && keys.size() == 0) {
-            return null;
-        } else {
-            //如果内存中joinTable值不足，则异步拉取新的joinInfo
-            if (!readCompleted && !asynchronousMerging && keys.size() < minSizeofJoinStatus) {
-                asynchronousMerging = true;
-                TouchStoneThreadPool.getThreadPoolExecutor().submit(() -> {
-                    try {
-                        takeAndMerge();
-                    } catch (InterruptedException e) {
-                        logger.error(e);
-                    }
-                });
-            }
-            try {
-                return keys.remove(0);
-            } catch (Exception e) {
+            //没有找到则返回null
+            if (keys == null) {
                 return null;
             }
+        }
+
+        //找到了，但是已经读取完毕也返回null
+        if (readCompleted && keys.size() == 0) {
+            return null;
+        }
+
+        //如果内存中joinTable值不足，且文件没有读取完毕，且内存的join table小于界定值，则拉取新的joinInfo
+        if (keys.size() < minSizeofJoinStatus && !readCompleted && currentSize < maxSizeOfJoinInfoInMemory) {
+            try {
+                Map<Integer, List<long[]>> readJoinInfo = joinInfoQueue.take();
+                if (readJoinInfo.size() == 0) {
+                    readCompleted = true;
+                }else {
+                    //merge read joinInfo into joinInfoInMemory
+                    for (Map.Entry<Integer, List<long[]>> joinInfo : readJoinInfo.entrySet()) {
+                        currentSize += joinInfo.getValue().size();
+                        if (joinInfoInMemory.containsKey(joinInfo.getKey())) {
+                            joinInfoInMemory.get(joinInfo.getKey()).addAll(joinInfo.getValue());
+                        } else {
+                            joinInfoInMemory.put(joinInfo.getKey(), joinInfo.getValue());
+                        }
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if(keys.size()>0){
+            currentSize--;
+            return keys.remove(0);
+        }else {
+            return null;
         }
     }
 
@@ -153,15 +167,19 @@ public class ReadOutJoinTable implements Runnable {
      */
     public void stopThread() {
         joinInfoInMemory = null;
-        joinInfoQueue.clear();
         stop = true;
+        joinInfoQueue.clear();
     }
 
     @Override
     public void run() {
         while (true) {
             Map<Integer, List<long[]>> joinInfo = readOutJoinTable();
-            joinInfoQueue.add(joinInfo);
+            try {
+                joinInfoQueue.put(joinInfo);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             if (stop || joinInfo.size() == 0) {
                 return;
             }

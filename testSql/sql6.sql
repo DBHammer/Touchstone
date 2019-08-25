@@ -3,8 +3,9 @@ select
 from
         lineitem
 where
-        l_shipdate >= date '1995/2/8'
-        and l_shipdate < date '1996/12/13'
-        and l_discount between 0.010248905420303345 and 0.0369435876607894
+        l_shipdate >=  '1993-1-3'
+        and l_shipdate < '1994-11-8'
+        and l_discount between 0.05585016012191773 and 0.08254484534263612
         and l_quantity < 14.08;
 
+select COUNT(*) from lineitem

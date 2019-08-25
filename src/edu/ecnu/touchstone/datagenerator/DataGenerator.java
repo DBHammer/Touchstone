@@ -80,7 +80,7 @@ public class DataGenerator implements Runnable {
 				TouchStoneThreadPool.closeThreadPool();
 				try {
 					FileUtils.cleanDirectory(new File(configurations.getJoinTableOutputPath()));
-				} catch (IOException e) {
+				} catch (IOException | IllegalArgumentException e) {
 					logger.error(e);
 				}
 				client.send(new HashMap<>());
@@ -107,10 +107,11 @@ public class DataGenerator implements Runnable {
 
 	private void setUpFileThread(){
         WriteOutJoinTable.setMaxSizeofJoinInfoInMemory(configurations.getMaxSizeofJoinInfoInMemoryToWrite());
-        WriteOutJoinTable.setMaxNumInMemory(configurations.getMaxCountJoinInfoInMemory());
-		ReadOutJoinTable.setMaxNumOfJoinInfoInMemory(configurations.getMaxCountJoinInfoInMemory());
+        WriteOutJoinTable.setMaxNumOfJoinInfoInWriteQueue(configurations.getMaxNumJoinInfoInMemoryInQueue());
+
+		ReadOutJoinTable.setMaxNumOfJoinInfoInReadQueue(configurations.getMaxNumJoinInfoInMemoryInQueue());
 		ReadOutJoinTable.setMinSizeofJoinStatus(configurations.getMinSizeofJoinInfoStatus());
-		ReadOutJoinTable.setMinSizeofJoinStatus(configurations.getMaxSizeofJoinInfoInMemoryToRead());
+		ReadOutJoinTable.setMaxSizeOfJoinInfoInMemory(configurations.getMaxSizeofJoinInfoInMemoryToRead());
     }
 
 
@@ -237,7 +238,10 @@ class DataGenerationThread implements Runnable {
 					template.setWriteOutJoinTable(joinTableOutputPath+ "//" +
 							template.getTableName() + "_" + threadId + "_");
 				}
-				if(template.hasLeftOuterJoinFk()){
+				if (template.hasLeftOuterJoinFk()) {
+					template.setFkLeftJoinInfoExitIndex(threadId, threadNum);
+				}
+				if(template.hasFkInFile()){
 					template.setReadOutJoinTable(joinTableOutputPath+"//",threadId,eachTableLeftJoinTag);
 				}
 				for (long uniqueNum = threadId; uniqueNum < tableSize; uniqueNum += threadNum) {
@@ -259,6 +263,9 @@ class DataGenerationThread implements Runnable {
 				}
 				bw.close();
 				template.stopAllFileThread();
+				if(template.hasLeftOuterJoinFk()){
+					template.printTraceNumCount();
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

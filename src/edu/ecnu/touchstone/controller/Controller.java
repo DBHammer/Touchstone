@@ -142,15 +142,18 @@ public class Controller {
 						for (Entry<Integer, ArrayList<long[]>> joinInfo : neededPKJoinInfo.get(rpkAttName).entrySet()) {
 							fkJoinInfoAfterNull.put(joinInfo.getKey(), new ArrayList<>(joinInfo.getValue()));
 						}
-						for (Entry<Integer, ArrayList<long[]>> joinInfo : fkJoinInfoAfterNull.entrySet()) {
+						for(Iterator<Entry<Integer, ArrayList<long[]>>> joinInfoIterator=
+							fkJoinInfoAfterNull.entrySet().iterator();joinInfoIterator.hasNext();){
+							Entry<Integer, ArrayList<long[]>> joinInfo = joinInfoIterator.next();
 							int joinResult=joinInfo.getKey() & 3*leftJoinTag;
 							if(joinResult!=leftJoinTag * 2){
 								double fileNullProbability = nullProbability.get(0).get(joinResult);
-								int existSize = (int) (joinInfo.getValue().size() * fileNullProbability);
+								int existSize = (int) Math.round(joinInfo.getValue().size() * fileNullProbability);
 								joinInfo.getValue().subList(0, existSize).clear();
 								fkJoinInfoAfterNull.put(joinInfo.getKey(), joinInfo.getValue());
 							}
 						}
+						fkJoinInfoAfterNull.entrySet().removeIf(e->e.getValue().size()==0);
 						fksJoinInfo.put(rpkAttName,fkJoinInfoAfterNull);
 						Map<Integer,Integer> joinSize =new HashMap<>();
 						for (Integer status : fkJoinInfoAfterNull.keySet()) {

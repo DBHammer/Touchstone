@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * @author wangqingshuai
+ */
 public class WriteOutJoinTable implements Runnable {
 
     private Logger logger = Logger.getLogger(Touchstone.class);
@@ -27,12 +30,12 @@ public class WriteOutJoinTable implements Runnable {
     /**
      * 缓冲队列中最大的join info表的数量
      */
-    private static int maxNumInMemory;
+    private static int maxNumOfJoinInfoInWriteQueue;
 
     /**
      * 当前JoinInfo中的Size
      */
-    private int currentJoinInfoSizeInMemory;
+    private int currentSizeOfJoinInfoInMemory;
 
     /**
      * JoinInfo最大承载的Size
@@ -43,13 +46,13 @@ public class WriteOutJoinTable implements Runnable {
         WriteOutJoinTable.maxSizeofJoinInfoInMemory = maxSizeofJoinInfoInMemory;
     }
 
-    public static void setMaxNumInMemory(int maxNumInMemory) {
-        WriteOutJoinTable.maxNumInMemory = maxNumInMemory;
+    public static void setMaxNumOfJoinInfoInWriteQueue(int maxNumOfJoinInfoInWriteQueue) {
+        WriteOutJoinTable.maxNumOfJoinInfoInWriteQueue = maxNumOfJoinInfoInWriteQueue;
     }
 
     public WriteOutJoinTable(String joinTableWritePath) {
         this.joinTableWritePath = joinTableWritePath;
-        joinInfoQueue = new LinkedBlockingQueue<>(maxNumInMemory);
+        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInWriteQueue);
         joinInfoInMemory = new HashMap<>();
     }
 
@@ -61,9 +64,14 @@ public class WriteOutJoinTable implements Runnable {
             keys.add(key);
             joinInfoInMemory.put(status, keys);
         }
-        if (++currentJoinInfoSizeInMemory > maxSizeofJoinInfoInMemory) {
-            joinInfoQueue.add(joinInfoInMemory);
-            joinInfoInMemory = new HashMap<>();
+        if (++currentSizeOfJoinInfoInMemory > maxSizeofJoinInfoInMemory) {
+            try {
+                joinInfoQueue.put(joinInfoInMemory);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            joinInfoInMemory = new HashMap<>(16);
+            currentSizeOfJoinInfoInMemory = 0;
         }
 
     }
@@ -72,10 +80,15 @@ public class WriteOutJoinTable implements Runnable {
      * 停止该线程
      */
     public void stopThread() {
-        //将剩余的size写出
-        joinInfoQueue.add(joinInfoInMemory);
-        //停止线程的标志
-        joinInfoQueue.add(new HashMap<>());
+        try {
+            //将剩余的size写出
+            joinInfoQueue.put(joinInfoInMemory);
+            //停止线程的标志
+            joinInfoQueue.put(new HashMap<>(16));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -87,6 +100,7 @@ public class WriteOutJoinTable implements Runnable {
             } catch (InterruptedException e) {
                 logger.error(e);
             }
+            //end tag
             if (joinInfo == null || joinInfo.size() == 0) {
                 return;
             }

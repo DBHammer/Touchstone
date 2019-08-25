@@ -1,15 +1,27 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class runDataOnDatabase {
     public static void main(String[] args) {
-        MysqlConnector mysqlConnector=new MysqlConnector();
+        MysqlConnector mysqlConnector = new MysqlConnector();
         try {
             mysqlConnector.createTables();
             mysqlConnector.loadData(2);
-            mysqlConnector.executeRJoinS(1,500);
-            mysqlConnector.executeRJoinS(1,400);
-            mysqlConnector.executeRJoinS(2,300);
-            mysqlConnector.executeMultiFilter();
+            String sql1;
+            sql1="select count(*) from R join S on R.R0=S.S1 where R.R1>700";
+            mysqlConnector.computeNum(sql1);
+            sql1="select count(*) from R join S on R.R0=S.S1 where R.R2>600 and S.S2<40000";
+            mysqlConnector.computeNum(sql1);
+            sql1="select count(*) from R left join S on R.R0=S.S1 where R.R2>600 and S.S0 is Null";
+            mysqlConnector.computeNum(sql1);
+            sql1="select count(*) from R join S on R.R0=S.S1 where R.R1<700";
+            mysqlConnector.computeNum(sql1);
+            sql1="select count(*) from R left join S on R.R0=S.S1 where R.R1<700 and S.S0 is Null";
+            mysqlConnector.computeNum(sql1);
+            sql1="select count(*) from R join S on R.R0=S.S1 and R.R1 where R.R1>564 and r3<'1995-1-6'";
+            mysqlConnector.computeNum(sql1);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -22,7 +34,7 @@ class MysqlConnector {
      */
     private Connection conn;
 
-    public MysqlConnector() {
+    MysqlConnector() {
 
         String dbUrl = "jdbc:mysql://10.11.6.121:13306/touchStoneTest?" +
                 "useSSL=false&" +
@@ -51,28 +63,18 @@ class MysqlConnector {
         }
     }
 
-    void executeMultiFilter() throws SQLException {
-        String multiFilter="select count(*) from R where R1 between 251.66559219360352 and 836.4691734313965" +
-                " and R4 LIKE '%3HN0YgH9hlEXe04ovv4r%' and R3 between '1994/7/6 4:4:16' and '1998/7/21 19:10:5'";
-        ResultSet rs=conn.createStatement().executeQuery(multiFilter);
-        rs.next();
-        int num = rs.getInt(1);
-        System.out.println(num);
-    }
-
-
-    void executeRJoinS(int index , double value) throws SQLException {
-        String sql="select count(*) from R left join S on R.R0=S.S1 where R.R"+index+">"+value+" and S.S0 is null";
+    void computeNum(String sql) {
         System.out.println(sql);
-        ResultSet rs=conn.createStatement().executeQuery(sql);
-        rs.next();
-        int num=rs.getInt(1);
-        sql="select count(*) from R where R.R"+index+">"+value;
-        rs=conn.createStatement().executeQuery(sql);
-        rs.next();
-        int num2=rs.getInt(1);
-        System.out.println(num+" "+num2);
+        try {
+            ResultSet rs = conn.createStatement().executeQuery(sql);
+            rs.next();
+            int num = rs.getInt(1);
+            System.out.println(num);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
+
 
     void executeSql(String sql) throws SQLException {
         conn.createStatement().execute(sql);
@@ -83,9 +85,11 @@ class MysqlConnector {
 
     public void loadData(int threadNum) throws SQLException {
         for (int i = 0; i < threadNum; i++) {
-            String sql = "load data CONCURRENT LOCAL INFILE 'data/r_"+i+".txt' into table R COLUMNS TERMINATED BY ',' ";
+            String sql = "load data CONCURRENT LOCAL INFILE 'data/r_" + i + ".txt' into table R COLUMNS TERMINATED BY ',' ";
             executeSql(sql);
-            sql = "load data CONCURRENT LOCAL INFILE 'data/s_"+i+".txt' into table S COLUMNS TERMINATED BY ',' ";
+        }
+        for (int i = 0; i < threadNum; i++) {
+            String sql = "load data CONCURRENT LOCAL INFILE 'data/s_" + i + ".txt' into table S COLUMNS TERMINATED BY ',' ";
             executeSql(sql);
         }
     }
@@ -99,9 +103,9 @@ class MysqlConnector {
         executeSql(sql);
         sql = "DROP TABLE IF EXISTS R";
         executeSql(sql);
-        sql="create table R(R0 int PRIMARY KEY,R1 int,R2 int,R3 datetime,R4 VARCHAR(25));";
+        sql = "create table R(R0 int PRIMARY KEY,R1 int,R2 int,R3 datetime,R4 VARCHAR(25));";
         executeSql(sql);
-        sql="create table S(S0 int PRIMARY KEY,S1 int,foreign key (S1) references R(R0));";
+        sql = "create table S(S0 int PRIMARY KEY,S1 int,S2 int,foreign key (S1) references R(R0));";
         executeSql(sql);
     }
 }

@@ -5,7 +5,7 @@ from
 	orders,
  	lineitem
 where
-	c_mktsegment = 'Y4XpKIoMGz'
+	c_mktsegment = 'CkrTbjgq5S'
 	and c_custkey = o_custkey
  	and l_orderkey = o_orderkey
  	and o_orderdate < date '1995/3/10'

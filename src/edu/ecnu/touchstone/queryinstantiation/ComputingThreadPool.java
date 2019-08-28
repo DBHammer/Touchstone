@@ -210,7 +210,7 @@ class ComputingThread implements Runnable {
 			paraValue = (max - min) * probability + min;
 		}
 
-		List<String> values = new ArrayList<String>();
+		List<String> values = new ArrayList<>();
 		values.add(String.valueOf(paraValue));
 		long cardinality = (long)(task.getInputDataSize() * probability);
 		// 'constraint' is only used in non-equi join

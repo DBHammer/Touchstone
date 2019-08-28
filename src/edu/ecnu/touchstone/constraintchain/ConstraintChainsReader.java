@@ -110,7 +110,7 @@ public class ConstraintChainsReader {
 						int cantJoinNum = Integer.parseInt(nodeInfoArr[5]);
 						FKJoin fkJoin = new FKJoin(foreignKeys, probability, primakryKeys,
 								canJoinNum, cantJoinNum,nodeInfoArr[0].equals("3"));
-						CCNode node = new CCNode(2, fkJoin);
+						CCNode node = new CCNode(Integer.parseInt(nodeInfoArr[0]), fkJoin);
 						nodes.add(node);
 					
 					} else {

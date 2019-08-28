@@ -315,7 +315,7 @@ public class QueryInstantiator {
 				if (type != 0) {
 					// calculate the input data size of next node
 					// note: assuming that 'PKJoin' node is the last node of a chain
-					if (type == 2) {
+					if (type == 2 || type ==3) {
 						FKJoin fkJoin = (FKJoin)nodes.get(j).getNode();
 						inputDataSize = inputDataSize * fkJoin.getProbability();
 					}

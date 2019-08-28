@@ -202,7 +202,7 @@ public class TableGeneTemplate implements Serializable{
 	}
 
 	public boolean hasLeftOuterJoin(){
-		return leftJoinNullProbability!=null;
+		return leftJoinNullProbability.size()!=0;
 	}
 
 	public Map<Integer, Double> getLeftJoinNullProbability() {
@@ -320,6 +320,7 @@ public class TableGeneTemplate implements Serializable{
 					// 'PKJoin' node must be at the end of the constraint chain
 					break;
 				case 2:
+				case 3:
 					FKJoin fkJoin = (FKJoin)nodes.get(j).getNode();
 					fkJoin.setAccumulativeProbability(accumulativeProbability);
 					accumulativeProbability *= fkJoin.getProbability();
@@ -536,7 +537,7 @@ public class TableGeneTemplate implements Serializable{
 			}
 
 			// in fact, the information here (fksJoinInfo) has been compressed, so it can not be done completely random
-			ArrayList<long[]> candidates = null;
+			ArrayList<long[]> candidates;
 			cumulant = (int)(Math.random() * cumulant);
 			for (JoinStatusesSizePair joinStatusesSizePair : satisfiedFkJoinInfo) {
 				if (cumulant < joinStatusesSizePair.getSize()) {
@@ -620,7 +621,7 @@ public class TableGeneTemplate implements Serializable{
 			for (int j = 0; j < constraintChains.size(); j++) {
 				List<CCNode> nodes = constraintChains.get(j).getNodes();
 				for (int k = 0; k < nodes.size(); k++) {
-					if (nodes.get(k).getType() == 2) {
+					if (nodes.get(k).getType() == 2 ||nodes.get(k).getType() == 3) {
 						FKJoin fkJoin = (FKJoin)nodes.get(k).getNode();
 						if (fkJoin.getRpkStr().equals(referencedKeys.get(i))) {
 							fkJoinNodes.add(fkJoin);
@@ -765,9 +766,8 @@ public class TableGeneTemplate implements Serializable{
 		FKJoin fkJoin = fkJoinNodes.get(order);
 		float originalTrueProbability = fkJoin.getAccumulativeProbability() * fkJoin.getProbability();
 		float originalFalseProbability = fkJoin.getAccumulativeProbability() * (1 - fkJoin.getProbability());
-		float probability = (originalTrueProbability - trueProbability) / 
+		return (originalTrueProbability - trueProbability) /
 				((originalTrueProbability - trueProbability) + (originalFalseProbability - falseProbability));
-		return probability;
 	}
 
 	// call the function 'initParsii' of all 'FilterOpertion's
@@ -850,7 +850,7 @@ public class TableGeneTemplate implements Serializable{
 		for (int i = 0; i < constraintChains.size(); i++) {
 			List<CCNode> nodes = constraintChains.get(i).getNodes();
 			for (int j = 0; j < nodes.size(); j++) {
-				if (nodes.get(j).getType() == 2) {
+				if (nodes.get(j).getType() == 2 || nodes.get(j).getType() ==3) {
 					FKJoin fkJoin = (FKJoin)nodes.get(j).getNode();
 					count += fkJoin.getFkJoinAdjustment().getRules().size();
 				}

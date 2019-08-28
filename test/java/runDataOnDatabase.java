@@ -4,24 +4,45 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class runDataOnDatabase {
+
+    private static final String QUERY2_VALUE = "aRlr";
+    private static final String QUERY3_VALUE1 = "gFF";
+    private static final String QUERY3_VALUE2 = "699999.988079071";
+    private static final String QUERY4_VALUE = "2000";
+
     public static void main(String[] args) {
         MysqlConnector mysqlConnector = new MysqlConnector();
         try {
             mysqlConnector.createTables();
             mysqlConnector.loadData(2);
-            String sql1;
-            sql1="select count(*) from R join S on R.R0=S.S1 where R.R1>700";
-            mysqlConnector.computeNum(sql1);
-            sql1="select count(*) from R join S on R.R0=S.S1 where R.R2>600 and S.S2<40000";
-            mysqlConnector.computeNum(sql1);
-            sql1="select count(*) from R left join S on R.R0=S.S1 where R.R2>600 and S.S0 is Null";
-            mysqlConnector.computeNum(sql1);
-            sql1="select count(*) from R join S on R.R0=S.S1 where R.R1<700";
-            mysqlConnector.computeNum(sql1);
-            sql1="select count(*) from R left join S on R.R0=S.S1 where R.R1<700 and S.S0 is Null";
-            mysqlConnector.computeNum(sql1);
-            sql1="select count(*) from R join S on R.R0=S.S1 and R.R1 where R.R1>564 and r3<'1995-1-6'";
-            mysqlConnector.computeNum(sql1);
+
+            System.out.println("Query1:");
+            String query1 = "SELECT COUNT(*) FROM PART LEFT JOIN PRODUCT ON P_PARTID=PR_PARTID";
+            mysqlConnector.computeNum(query1);
+
+            System.out.println("\nQuery2:");
+            String query2 = "SELECT COUNT(*) FROM PART RIGHT JOIN PRODUCT ON P_PARTID=PR_PARTID" +
+                    " AND TYPE ='" + QUERY2_VALUE + "'";
+            mysqlConnector.computeNum(query2);
+            query2 += " WHERE P_PARTID IS NULL";
+            mysqlConnector.computeNum(query2);
+
+            System.out.println("\nQuery3:");
+            String query3InnerJoin= "SELECT COUNT(*) FROM PART JOIN PRODUCT ON P_PARTID=PR_PARTID" +
+                    " AND SUPPLIER ='" + QUERY3_VALUE1 + "' AND TOTALSOLD>" + QUERY3_VALUE2;
+            mysqlConnector.computeNum(query3InnerJoin);
+            String query3LeftOuterNull = "SELECT COUNT(*) FROM PART LEFT JOIN PRODUCT ON P_PARTID=PR_PARTID" +
+                    " AND TOTALSOLD>" + QUERY3_VALUE2 +" WHERE SUPPLIER ='" + QUERY3_VALUE1 + "' AND PR_PARTID IS NULL";
+            mysqlConnector.computeNum(query3LeftOuterNull);
+            String query3RightOuterNull = "SELECT COUNT(*) FROM PART RIGHT JOIN PRODUCT ON P_PARTID=PR_PARTID" +
+                    " AND SUPPLIER ='" + QUERY3_VALUE1 + "' WHERE TOTALSOLD>" + QUERY3_VALUE2+" AND P_PARTID IS NULL";
+            mysqlConnector.computeNum(query3RightOuterNull);
+
+            System.out.println("\nQuery4:");
+            String query4 = "SELECT COUNT(*) FROM PART JOIN PRODUCT ON P_PARTID=PR_PARTID" +
+                    " WHERE STOCK<'" + QUERY4_VALUE + "'";
+            mysqlConnector.computeNum(query4);
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -48,6 +69,7 @@ class MysqlConnector {
 
         try {
             conn = DriverManager.getConnection(dbUrl, user, pass);
+            System.out.println("连接成功");
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println("无法建立数据库连接");
@@ -76,20 +98,20 @@ class MysqlConnector {
     }
 
 
-    void executeSql(String sql) throws SQLException {
+    private void executeSql(String sql) throws SQLException {
         conn.createStatement().execute(sql);
     }
 
     //表格相关操作
 
 
-    public void loadData(int threadNum) throws SQLException {
+    void loadData(int threadNum) throws SQLException {
         for (int i = 0; i < threadNum; i++) {
-            String sql = "load data CONCURRENT LOCAL INFILE 'data/r_" + i + ".txt' into table R COLUMNS TERMINATED BY ',' ";
+            String sql = "load data CONCURRENT LOCAL INFILE 'data/part_" + i + ".txt' into table PART COLUMNS TERMINATED BY ',' ";
             executeSql(sql);
         }
         for (int i = 0; i < threadNum; i++) {
-            String sql = "load data CONCURRENT LOCAL INFILE 'data/s_" + i + ".txt' into table S COLUMNS TERMINATED BY ',' ";
+            String sql = "load data CONCURRENT LOCAL INFILE 'data/product_" + i + ".txt' into table PRODUCT COLUMNS TERMINATED BY ',' ";
             executeSql(sql);
         }
     }
@@ -98,14 +120,15 @@ class MysqlConnector {
      * 在本项目中表的命名都用t开头，因此我们从t0开始删除指定数量的表，
      * 来进行本次执行的初始化
      */
-    public void createTables() throws SQLException {
-        String sql = "DROP TABLE IF EXISTS S";
+    void createTables() throws SQLException {
+        String sql = "DROP TABLE IF EXISTS PRODUCT";
         executeSql(sql);
-        sql = "DROP TABLE IF EXISTS R";
+        sql = "DROP TABLE IF EXISTS PART";
         executeSql(sql);
-        sql = "create table R(R0 int PRIMARY KEY,R1 int,R2 int,R3 datetime,R4 VARCHAR(25));";
+        sql = "create table PART(P_PARTID int PRIMARY KEY,SUPPLIER VARCHAR(8),TYPE VARCHAR(8),STOCK INTEGER);";
         executeSql(sql);
-        sql = "create table S(S0 int PRIMARY KEY,S1 int,S2 int,foreign key (S1) references R(R0));";
+        sql = "create table PRODUCT(PRODUCTID int PRIMARY KEY,PR_PARTID int,KIND VARCHAR(8)," +
+                "TOTALSOLD INT,foreign key (PR_PARTID) references PART(P_PARTID));";
         executeSql(sql);
     }
 }

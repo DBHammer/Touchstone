@@ -151,7 +151,7 @@ public class Preprocessor {
 							}
 						}
 					}
-					if(node.getType()==2){
+					if((node.getType() == 2) || (node.getType() == 3)){
 						FKJoin fkJoin=(FKJoin)node.getNode();
 						if(!fkJoinStatusSet.containsKey(fkJoin.getRpkStr())){
 							Set<Integer> statusSet=new HashSet<>();

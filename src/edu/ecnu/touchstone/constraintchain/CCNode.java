@@ -29,6 +29,7 @@ public class CCNode implements Serializable {
 			this.node = new PKJoin((PKJoin)ccNode.node);
 			break;
 		case 2:
+		case 3:
 			this.node = new FKJoin((FKJoin)ccNode.node);
 			break;
 		}

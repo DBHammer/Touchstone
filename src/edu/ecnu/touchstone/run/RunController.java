@@ -1,5 +1,9 @@
 package edu.ecnu.touchstone.run;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +53,13 @@ public class RunController {
 				computingThreadPool);
 		queryInstantiator.iterate();
 		List<Parameter> parameters = queryInstantiator.getParameters();
-		
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(configurations.getResultOutputDirectory()));
+			out.write("Final instantiated parameters: " + parameters);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		Preprocessor preprocessor = new Preprocessor(tables, constraintChains, parameters);
 		List<String> tablePartialOrder = preprocessor.getPartialOrder();
 		Map<String, TableGeneTemplate> tableGeneTemplateMap = preprocessor.getTableGeneTemplates(

@@ -19,6 +19,7 @@ public class Configurations {
 	private String controllerIp = null;
 	private int controllerPort;
 	private String controllerRunDir = null;
+	private String resultOutputDirectory = null;
 
 	// input files
 	private String databaseSchemaInput = null;
@@ -72,6 +73,10 @@ public class Configurations {
 		return maxNumJoinInfoInMemoryInQueue;
 	}
 
+	public String getResultOutputDirectory() {
+		return resultOutputDirectory;
+	}
+
 	private void read(String confFilePath) {
 		String inputLine = null;
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(confFilePath)))) {
@@ -114,6 +119,9 @@ public class Configurations {
 					break;
 				case "running directory of controller":
 					controllerRunDir = arr[1];
+					break;
+				case "result output directory":
+					resultOutputDirectory=arr[1];
 					break;
 				case "database schema":
 					databaseSchemaInput = arr[1];

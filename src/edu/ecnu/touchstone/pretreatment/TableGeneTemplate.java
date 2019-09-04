@@ -577,11 +577,15 @@ public class TableGeneTemplate implements Serializable{
 			}
 		}
 
+
 		// maintain the combined join statuses of the primary key
 		String[] pkNames = pkStrArr;
 		long[] pkValues = new long[pkNames.length];
 		for (int i = 0; i < pkNames.length; i++) {
-			pkValues[i] = Long.parseLong(attributeValueMap.get(pkNames[i]));
+			if(attributeValueMap.get(pkNames[i])!=null){
+				pkValues[i] = Long.parseLong(attributeValueMap.get(pkNames[i]));
+			}
+
 		}
 		if (!pkJoinInfo.containsKey(pkJoinStatuses)) {
 			pkJoinInfo.put(pkJoinStatuses, new ArrayList<long[]>());

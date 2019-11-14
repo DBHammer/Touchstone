@@ -22,7 +22,7 @@ public class ComputeNullProbability {
         int leftJoinModTag = 3 * leftJoinTag;
         int leftJoinFalseTag = 2 * leftJoinTag;
 
-        Map<Integer, Double> taggedNullProbability = new HashMap<>();
+        Map<Integer, Double> taggedNullProbability = new HashMap<>(16);
         for (Map.Entry<Integer, Double> integerDoubleEntry : nullProbability.entrySet()) {
             if ((integerDoubleEntry.getKey() & leftJoinTag) != 0) {
                 taggedNullProbability.put(integerDoubleEntry.getKey(), integerDoubleEntry.getValue());
@@ -64,11 +64,11 @@ public class ComputeNullProbability {
             double[] sol = computeTableAndFileNullProbability(taggedSizeInfo.get(status)[0],
                     taggedSizeInfo.get(status)[1], taggedNullProbability.get(status));
             tableAndFileNullProbability.get(0).put(status, sol[0]);
-            if(sol.length==2){
+            if (sol.length == 2) {
                 tableAndFileNullProbability.get(1).put(status, sol[1]);
             }
         }
-        if(tableAndFileNullProbability.get(1).size()==0){
+        if (tableAndFileNullProbability.get(1).size() == 0) {
             tableAndFileNullProbability.remove(1);
         }
         return tableAndFileNullProbability;

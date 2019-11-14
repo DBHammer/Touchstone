@@ -17,25 +17,34 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class ReadOutJoinTable implements Runnable {
 
+    private static int minSizeofJoinStatus;
+    private static int maxNumOfJoinInfoInReadQueue;
+    private static int maxSizeOfJoinInfoInMemory;
     private boolean stop;
     private Logger logger = Logger.getLogger(Touchstone.class);
-
     private String joinTableReadPath;
     private int readIndex;
-
     /**
      * status是全表的status 未被压缩过
      */
     private Map<Integer, List<long[]>> joinInfoInMemory;
     private BlockingQueue<Map<Integer, List<long[]>>> joinInfoQueue;
-
-
-    private static int minSizeofJoinStatus;
-    private static int maxNumOfJoinInfoInReadQueue;
-    private static int maxSizeOfJoinInfoInMemory;
     private int currentSize;
 
     private boolean readCompleted;
+    private Map<Integer, Double> statusNullProbability;
+    private int leftOuterTag;
+
+    public ReadOutJoinTable(String joinTableReadPath, Map<Integer, Double> statusNullProbability, int leftOuterTag) {
+        this.joinTableReadPath = joinTableReadPath;
+        this.statusNullProbability = statusNullProbability;
+        this.leftOuterTag = leftOuterTag;
+        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInReadQueue);
+        joinInfoInMemory = readOutJoinTable();
+        for (List<long[]> value : joinInfoInMemory.values()) {
+            currentSize += value.size();
+        }
+    }
 
     public static void setMaxSizeOfJoinInfoInMemory(int maxSizeOfJoinInfoInMemory) {
         ReadOutJoinTable.maxSizeOfJoinInfoInMemory = maxSizeOfJoinInfoInMemory;
@@ -49,32 +58,17 @@ public class ReadOutJoinTable implements Runnable {
         ReadOutJoinTable.maxNumOfJoinInfoInReadQueue = maxNumOfJoinInfoInReadQueue;
     }
 
-    private Map<Integer, Double> statusNullProbability;
-    private int leftOuterTag;
-
-
-    public ReadOutJoinTable(String joinTableReadPath, Map<Integer, Double> statusNullProbability, int leftOuterTag) {
-        this.joinTableReadPath = joinTableReadPath;
-        this.statusNullProbability = statusNullProbability;
-        this.leftOuterTag = leftOuterTag;
-        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInReadQueue);
-        joinInfoInMemory = readOutJoinTable();
-        for (List<long[]> value : joinInfoInMemory.values()) {
-            currentSize += value.size();
-        }
-    }
-
     private Map<Integer, List<long[]>> readOutJoinTable() {
-        Map<Integer, List<long[]>> readJoinInfo = new HashMap<>();
+        Map<Integer, List<long[]>> readJoinInfo = new HashMap<>(16);
         try (ObjectInputStream joinTableOutputStream = new ObjectInputStream(new FileInputStream(
                 new File(joinTableReadPath + (++readIndex))))) {
             //If the read object is not a instance of joinTableInfo,
             // it maybe cause an error. But in fact it must not be.
             readJoinInfo = (Map<Integer, List<long[]>>) joinTableOutputStream.readObject();
             for (Map.Entry<Integer, List<long[]>> joinInfo : readJoinInfo.entrySet()) {
-                int clearIndex=(int)Math.round(statusNullProbability.get(joinInfo.getKey() & leftOuterTag)
+                int clearIndex = (int) Math.round(statusNullProbability.get(joinInfo.getKey() & leftOuterTag)
                         * joinInfo.getValue().size());
-                if(clearIndex==joinInfo.getValue().size()){
+                if (clearIndex == joinInfo.getValue().size()) {
                     clearIndex--;
                 }
                 joinInfo.getValue().subList(0, clearIndex).clear();
@@ -88,7 +82,7 @@ public class ReadOutJoinTable implements Runnable {
             logger.error(e);
             logger.error("error path is" + joinTableReadPath + readIndex);
             return new HashMap<>(16);
-        } catch (Exception e){
+        } catch (Exception e) {
             System.out.println(leftOuterTag);
             System.out.println("key1");
             for (Integer key : readJoinInfo.keySet()) {
@@ -111,25 +105,24 @@ public class ReadOutJoinTable implements Runnable {
             return null;
         }
         List<long[]> keys = null;
+        int joinStatus = -1;
+
         if (joinInfoInMemory.containsKey(status)) {
+            joinStatus = status;
             keys = joinInfoInMemory.get(status);
         } else {
-            //找到值最多的list
             for (Map.Entry<Integer, List<long[]>> joinInfo : joinInfoInMemory.entrySet()) {
-                if ((status & joinInfo.getKey()) == joinInfo.getKey()) {
-                    if (keys == null || joinInfo.getValue().size() >= keys.size()) {
+                if ((joinInfo.getKey() & status) == status) {
+                    if (keys == null || keys.size() > joinInfo.getValue().size()) {
+                        joinStatus = joinInfo.getKey();
                         keys = joinInfo.getValue();
                     }
                 }
             }
-            //没有找到则返回null
-            if (keys == null) {
-                return null;
-            }
         }
 
-        //找到了，但是已经读取完毕也返回null
-        if (readCompleted && keys.size() == 0) {
+        //if keys is not in memory return null;
+        if (keys == null) {
             return null;
         }
 
@@ -139,7 +132,7 @@ public class ReadOutJoinTable implements Runnable {
                 Map<Integer, List<long[]>> readJoinInfo = joinInfoQueue.take();
                 if (readJoinInfo.size() == 0) {
                     readCompleted = true;
-                }else {
+                } else {
                     //merge read joinInfo into joinInfoInMemory
                     for (Map.Entry<Integer, List<long[]>> joinInfo : readJoinInfo.entrySet()) {
                         currentSize += joinInfo.getValue().size();
@@ -154,21 +147,33 @@ public class ReadOutJoinTable implements Runnable {
                 e.printStackTrace();
             }
         }
-        if(keys.size()>0){
-            currentSize--;
-            return keys.remove(0);
-        }else {
-            return null;
+        long[] result = keys.remove(0);
+        if (keys.size() == 0) {
+            joinInfoInMemory.remove(joinStatus);
         }
+        return result;
     }
 
     /**
      * 停止该线程
      */
-    public void stopThread() {
+    public String stopThread() {
+        StringBuilder result = new StringBuilder();
+        if (!readCompleted) {
+            result.append("readIndex=").append(readIndex).append(";readQueue=").append(joinInfoQueue.size());
+        }
+        for (Map.Entry<Integer, List<long[]>> integerListEntry : joinInfoInMemory.entrySet()) {
+            if (integerListEntry.getValue().size() != 0) {
+                result.append(';').append(integerListEntry.getKey()).append("=").append(integerListEntry.getValue().size());
+            }
+        }
+        if ("".contentEquals(result)) {
+            result = new StringBuilder("Read Completed");
+        }
         joinInfoInMemory = null;
         stop = true;
         joinInfoQueue.clear();
+        return result.toString();
     }
 
     @Override

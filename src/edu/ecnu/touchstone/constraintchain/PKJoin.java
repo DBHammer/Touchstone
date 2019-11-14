@@ -10,63 +10,60 @@ import java.util.Arrays;
 // the primary key can be multiple attributes (support mixed reference)
 public class PKJoin implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	
-	private String[] primaryKeys = null;
+    private static final long serialVersionUID = 1L;
 
-	public double[] getLeftOuterJoinNullProbability() {
-		return leftOuterJoinNullProbability;
-	}
+    private String[] primaryKeys = null;
+    private double[] leftOuterJoinNullProbability;
+    // aligned in sequence
+    private int[] canJoinNum = null;
+    private int[] cantJoinNum = null;
+    // to avoid the string manipulation in data generation
+    private String pkStr = null;
 
-	private double[] leftOuterJoinNullProbability;
-	
-	// aligned in sequence
-	private int[] canJoinNum = null;
-	private int[] cantJoinNum = null;
-	
-	// to avoid the string manipulation in data generation
-	private String pkStr = null;
+    public PKJoin(String[] primaryKeys, int[] canJoinNum, int[] cantJoinNum, double[] leftOuterJoinNullProbability) {
+        super();
+        this.primaryKeys = primaryKeys;
+        this.canJoinNum = canJoinNum;
+        this.cantJoinNum = cantJoinNum;
+        this.leftOuterJoinNullProbability = leftOuterJoinNullProbability;
+        pkStr = Arrays.toString(this.primaryKeys);
+    }
 
-	public PKJoin(String[] primaryKeys, int[] canJoinNum, int[] cantJoinNum, double[] leftOuterJoinNullProbability) {
-		super();
-		this.primaryKeys = primaryKeys;
-		this.canJoinNum = canJoinNum;
-		this.cantJoinNum = cantJoinNum;
-		this.leftOuterJoinNullProbability=leftOuterJoinNullProbability;
-		pkStr = Arrays.toString(this.primaryKeys);
-	}
+    public PKJoin(PKJoin pkJoin) {
+        super();
+        this.primaryKeys = Arrays.copyOf(pkJoin.primaryKeys, pkJoin.primaryKeys.length);
+        this.canJoinNum = Arrays.copyOf(pkJoin.canJoinNum, pkJoin.canJoinNum.length);
+        this.cantJoinNum = Arrays.copyOf(pkJoin.cantJoinNum, pkJoin.cantJoinNum.length);
+        if (pkJoin.leftOuterJoinNullProbability != null) {
+            this.leftOuterJoinNullProbability = Arrays.copyOf(pkJoin.leftOuterJoinNullProbability,
+                    pkJoin.leftOuterJoinNullProbability.length);
+        }
+        this.pkStr = pkJoin.pkStr;
+    }
 
-	public PKJoin(PKJoin pkJoin) {
-		super();
-		this.primaryKeys = Arrays.copyOf(pkJoin.primaryKeys, pkJoin.primaryKeys.length);
-		this.canJoinNum = Arrays.copyOf(pkJoin.canJoinNum, pkJoin.canJoinNum.length);
-		this.cantJoinNum = Arrays.copyOf(pkJoin.cantJoinNum, pkJoin.cantJoinNum.length);
-		if(pkJoin.leftOuterJoinNullProbability!=null){
-			this.leftOuterJoinNullProbability= Arrays.copyOf(pkJoin.leftOuterJoinNullProbability,
-					pkJoin.leftOuterJoinNullProbability.length);
-		}
-		this.pkStr = pkJoin.pkStr;
-	}
+    public double[] getLeftOuterJoinNullProbability() {
+        return leftOuterJoinNullProbability;
+    }
 
-	public String[] getPrimaryKeys() {
-		return primaryKeys;
-	}
+    public String[] getPrimaryKeys() {
+        return primaryKeys;
+    }
 
-	public int[] getCanJoinNum() {
-		return canJoinNum;
-	}
+    public int[] getCanJoinNum() {
+        return canJoinNum;
+    }
 
-	public int[] getCantJoinNum() {
-		return cantJoinNum;
-	}
+    public int[] getCantJoinNum() {
+        return cantJoinNum;
+    }
 
-	public String getPkStr() {
-		return pkStr;
-	}
+    public String getPkStr() {
+        return pkStr;
+    }
 
-	@Override
-	public String toString() {
-		return "\n\tPKJoin [primaryKeys=" + Arrays.toString(primaryKeys) + ", canJoinNum=" + Arrays.toString(canJoinNum)
-				+ ", cantJoinNum=" + Arrays.toString(cantJoinNum) + ", pkStr=" + pkStr + "]";
-	}
+    @Override
+    public String toString() {
+        return "\n\tPKJoin [primaryKeys=" + Arrays.toString(primaryKeys) + ", canJoinNum=" + Arrays.toString(canJoinNum)
+                + ", cantJoinNum=" + Arrays.toString(cantJoinNum) + ", pkStr=" + pkStr + "]";
+    }
 }

@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
  * 全局线程池的基本配置信息
  */
 public class TouchStoneThreadPool {
-    private static final int CORE_NUM =  Runtime.getRuntime().availableProcessors();
+    private static final int CORE_NUM = Runtime.getRuntime().availableProcessors();
     private static final int MAX_POOL_SIZE = 2 * CORE_NUM;
     private static final int KEEP_ALIVE_TIME = 5000;
     /**

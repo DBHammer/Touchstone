@@ -19,28 +19,29 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class WriteOutJoinTable implements Runnable {
 
-    private Logger logger = Logger.getLogger(Touchstone.class);
-
-    private String joinTableWritePath;
-    private int writeIndex;
-
-    private BlockingQueue<Map<Integer, List<long[]>>> joinInfoQueue;
-    private Map<Integer, List<long[]>> joinInfoInMemory;
-
     /**
      * 缓冲队列中最大的join info表的数量
      */
     private static int maxNumOfJoinInfoInWriteQueue;
-
+    /**
+     * JoinInfo最大承载的Size
+     */
+    private static int maxSizeofJoinInfoInMemory;
+    private Logger logger = Logger.getLogger(Touchstone.class);
+    private String joinTableWritePath;
+    private int writeIndex;
+    private BlockingQueue<Map<Integer, List<long[]>>> joinInfoQueue;
+    private Map<Integer, List<long[]>> joinInfoInMemory;
     /**
      * 当前JoinInfo中的Size
      */
     private int currentSizeOfJoinInfoInMemory;
 
-    /**
-     * JoinInfo最大承载的Size
-     */
-    private static int maxSizeofJoinInfoInMemory;
+    public WriteOutJoinTable(String joinTableWritePath) {
+        this.joinTableWritePath = joinTableWritePath;
+        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInWriteQueue);
+        joinInfoInMemory = new HashMap<>();
+    }
 
     public static void setMaxSizeofJoinInfoInMemory(int maxSizeofJoinInfoInMemory) {
         WriteOutJoinTable.maxSizeofJoinInfoInMemory = maxSizeofJoinInfoInMemory;
@@ -48,12 +49,6 @@ public class WriteOutJoinTable implements Runnable {
 
     public static void setMaxNumOfJoinInfoInWriteQueue(int maxNumOfJoinInfoInWriteQueue) {
         WriteOutJoinTable.maxNumOfJoinInfoInWriteQueue = maxNumOfJoinInfoInWriteQueue;
-    }
-
-    public WriteOutJoinTable(String joinTableWritePath) {
-        this.joinTableWritePath = joinTableWritePath;
-        joinInfoQueue = new LinkedBlockingQueue<>(maxNumOfJoinInfoInWriteQueue);
-        joinInfoInMemory = new HashMap<>();
     }
 
     public void write(Integer status, long[] key) {

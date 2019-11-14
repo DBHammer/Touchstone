@@ -133,7 +133,7 @@ public class JoinInfoMerger {
 
         //add file size for every left join status in the end of pk join info list
         for (Integer status : mergedPkJoinInfo.keySet()) {
-            if(leftOuterJoinFileSize.containsKey(status)){
+            if (leftOuterJoinFileSize.containsKey(status)) {
                 mergedPkJoinInfo.get(status).add(new long[]{leftOuterJoinFileSize.get(status)});
             }
         }

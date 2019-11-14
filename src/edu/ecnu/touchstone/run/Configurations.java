@@ -8,332 +8,334 @@ import java.util.List;
 
 public class Configurations {
 
-	// configurations of servers
-	// aligned in sequence
-	private List<String> ips = new ArrayList<String>();
-	private List<String> userNames = new ArrayList<String>();
-	private List<String> passwds = new ArrayList<String>();
-	private String rootPassword = null;
+    // configurations of servers
+    // aligned in sequence
+    private List<String> ips = new ArrayList<String>();
+    private List<String> userNames = new ArrayList<String>();
+    private List<String> passwds = new ArrayList<String>();
+    private String rootPassword = null;
 
-	// configurations of controller
-	private String controllerIp = null;
-	private int controllerPort;
-	private String controllerRunDir = null;
-	private String resultOutputDirectory = null;
+    // configurations of controller
+    private String controllerIp = null;
+    private int controllerPort;
+    private String controllerRunDir = null;
+    private String resultOutputDirectory = null;
 
-	// input files
-	private String databaseSchemaInput = null;
-	private String cardinalityConstraintsInput = null;
-	private String nonEquiJoinConstraintsInput = null;
+    // input files
+    private String databaseSchemaInput = null;
+    private String cardinalityConstraintsInput = null;
+    private String nonEquiJoinConstraintsInput = null;
 
-	// configuration of log4j
-	private String log4jConfFile = null;
+    // configuration of log4j
+    private String log4jConfFile = null;
 
-	// configuration of Mathematica
-	private String jLinkPath = null;
+    // configuration of Mathematica
+    private String jLinkPath = null;
 
-	// configurations of data generators
-	private List<String> dataGeneratorIps = new ArrayList<String>();
-	private List<Integer> dataGeneratorPorts = new ArrayList<Integer>();
-	private List<Integer> dataGeneratorThreadNums = new ArrayList<Integer>();
-	private List<String> dataGeneratorRunDirs = new ArrayList<String>();
-	private String dataOutputPath = null;
-	private String joinTableOutputPath = null;
+    // configurations of data generators
+    private List<String> dataGeneratorIps = new ArrayList<String>();
+    private List<Integer> dataGeneratorPorts = new ArrayList<Integer>();
+    private List<Integer> dataGeneratorThreadNums = new ArrayList<Integer>();
+    private List<String> dataGeneratorRunDirs = new ArrayList<String>();
+    private String dataOutputPath = null;
+    private String joinTableOutputPath = null;
 
-	// running parameters
-	private int queryInstantiationThreadNum;
-	private int queryInstantiationMaxIterations, paraInstantiationMaxIterations;
-	private double queryInstantiationGlobalRelativeError, paraInstantiationRelativeError;
-	private int shuffleMaxNum;
-	private int pkvsMaxSize;
+    // running parameters
+    private int queryInstantiationThreadNum;
+    private int queryInstantiationMaxIterations, paraInstantiationMaxIterations;
+    private double queryInstantiationGlobalRelativeError, paraInstantiationRelativeError;
+    private int shuffleMaxNum;
+    private int pkvsMaxSize;
 
-	// outer join file thread config
-	private int maxSizeofJoinInfoInMemoryToWrite;
-	private int maxSizeofJoinInfoInMemoryToRead;
-	private int minSizeofJoinInfoStatus;
-	private int maxNumJoinInfoInMemoryInQueue;
+    // outer join file thread config
+    private int maxSizeofJoinInfoInMemoryToWrite;
+    private int maxSizeofJoinInfoInMemoryToRead;
+    private int minSizeofJoinInfoStatus;
+    private int maxNumJoinInfoInMemoryInQueue;
 
-	public Configurations(String confFilePath) {
-		read(confFilePath);
-	}
+    public Configurations(String confFilePath) {
+        read(confFilePath);
+    }
 
-	public int getMaxSizeofJoinInfoInMemoryToRead() {
-		return maxSizeofJoinInfoInMemoryToRead;
-	}
+    // test
+    public static void main(String[] args) {
+        Configurations configurations = new Configurations(".//test//touchstone.conf");
+        System.out.println(configurations);
+    }
 
-	public int getMaxSizeofJoinInfoInMemoryToWrite() {
-		return maxSizeofJoinInfoInMemoryToWrite;
-	}
+    public int getMaxSizeofJoinInfoInMemoryToRead() {
+        return maxSizeofJoinInfoInMemoryToRead;
+    }
 
-	public int getMinSizeofJoinInfoStatus() {
-		return minSizeofJoinInfoStatus;
-	}
+    public int getMaxSizeofJoinInfoInMemoryToWrite() {
+        return maxSizeofJoinInfoInMemoryToWrite;
+    }
 
-	public int getMaxNumJoinInfoInMemoryInQueue() {
-		return maxNumJoinInfoInMemoryInQueue;
-	}
+    public int getMinSizeofJoinInfoStatus() {
+        return minSizeofJoinInfoStatus;
+    }
 
-	public String getResultOutputDirectory() {
-		return resultOutputDirectory;
-	}
+    public int getMaxNumJoinInfoInMemoryInQueue() {
+        return maxNumJoinInfoInMemoryInQueue;
+    }
 
-	private void read(String confFilePath) {
-		String inputLine = null;
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(confFilePath)))) {
-			while ((inputLine = br.readLine()) != null) {
-				// skip the blank lines and comments
-				if (inputLine.matches("[\\s]*") || inputLine.matches("[ ]*##[\\s\\S]*")) {
-					continue;
-				}
-				//read the configurations
-				String[] arr = inputLine.split(":", 2);
-				arr[0] = arr[0].trim();
-				arr[1] = arr[1].trim();
-				switch (arr[0]) {
-				case "IPs of servers":
-					String[] tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						ips.add(tmp[i].trim());
-					}
-					break;
-				case "user names of servers":
-					tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						userNames.add(tmp[i].trim());
-					}
-					break;
-				case "passwords of servers":
-					tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						passwds.add(tmp[i].trim());
-					}
-					break;
-				case "password of root user":
-					rootPassword = arr[1];
-					break;
-				case "IP of controller":
-					controllerIp = arr[1];
-					break;
-				case "port of controller":
-					controllerPort = Integer.parseInt(arr[1]);
-					break;
-				case "running directory of controller":
-					controllerRunDir = arr[1];
-					break;
-				case "result output directory":
-					resultOutputDirectory=arr[1];
-					break;
-				case "database schema":
-					databaseSchemaInput = arr[1];
-					break;
-				case "cardinality constraints":
-					cardinalityConstraintsInput = arr[1];
-					break;
-				case "non-equi join constraints":
-					nonEquiJoinConstraintsInput = arr[1];
-					break;	
-				case "path of log4j.properties":
-					log4jConfFile = arr[1];
-					break;
-				case "path of JLink":
-					jLinkPath = arr[1];
-					break;
-				case "IPs of data generators":
-					tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						dataGeneratorIps.add(tmp[i].trim());
-					}
-					break;
-				case "ports of data generators":
-					tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						dataGeneratorPorts.add(Integer.parseInt(tmp[i].trim()));
-					}
-					break;
-				case "thread numbers of data generators":
-					tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						dataGeneratorThreadNums.add(Integer.parseInt(tmp[i].trim()));
-					}
-					break;
-				case "running directories of data generators":
-					tmp = arr[1].split(";");
-					for (int i = 0; i < tmp.length; i++) {
-						dataGeneratorRunDirs.add(tmp[i].trim());
-					}
-					break;
-				case "data output path":
-					dataOutputPath = arr[1];
-					break;
-				case "joinTableOutputPath":
-					joinTableOutputPath = arr[1];
-					break;
-				case "thread numbers of query instantiation":
-					queryInstantiationThreadNum = Integer.parseInt(arr[1]);
-					break;
-				case "maximum iterations of query instantiation":
-					queryInstantiationMaxIterations = Integer.parseInt(arr[1]);
-					break;
-				case "global relative error of query instantiation":
-					queryInstantiationGlobalRelativeError = Double.parseDouble(arr[1]);
-					break;
-				case "maximum iterations of parameter instantiation":
-					paraInstantiationMaxIterations = Integer.parseInt(arr[1]);
-					break;
-				case "relative error of parameter instantiation":
-					paraInstantiationRelativeError = Double.parseDouble(arr[1]);
-					break;
-				case "maximum number of shuffle":
-					shuffleMaxNum = Integer.parseInt(arr[1]);
-					break;
-				case "maximum size of PKVs":
-					pkvsMaxSize = Integer.parseInt(arr[1]);
-					break;
-				case "maximum num of join table file in read or write queue":
-					maxNumJoinInfoInMemoryInQueue = Integer.parseInt(arr[1]);
-					break;
-				case "maximum size of join table in memory to write":
-					maxSizeofJoinInfoInMemoryToWrite =Integer.parseInt(arr[1]);
-					break;
-				case "maximum size of join table in memory to read":
-					maxSizeofJoinInfoInMemoryToRead =Integer.parseInt(arr[1]);
-					break;
-				case "minimum num of join table status to read":
-					minSizeofJoinInfoStatus =Integer.parseInt(arr[1]);
-					break;
-				case "join info output path":
-					joinTableOutputPath = arr[1].trim();
-					break;
-				default:
-					System.out.println("Unable to identify the configuration item!\n" + 
-							"Error input line: " + inputLine);
-					System.exit(0);
-				}
-			}
-		} catch (Exception e) {
-			System.out.println("Error input line: " + inputLine);
-			e.printStackTrace();
-			System.exit(0);
-		}
-	}
+    public String getResultOutputDirectory() {
+        return resultOutputDirectory;
+    }
 
-	public List<String> getIps() {
-		return ips;
-	}
+    private void read(String confFilePath) {
+        String inputLine = null;
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(confFilePath)))) {
+            while ((inputLine = br.readLine()) != null) {
+                // skip the blank lines and comments
+                if (inputLine.matches("[\\s]*") || inputLine.matches("[ ]*##[\\s\\S]*")) {
+                    continue;
+                }
+                //read the configurations
+                String[] arr = inputLine.split(":", 2);
+                arr[0] = arr[0].trim();
+                arr[1] = arr[1].trim();
+                switch (arr[0]) {
+                    case "IPs of servers":
+                        String[] tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            ips.add(tmp[i].trim());
+                        }
+                        break;
+                    case "user names of servers":
+                        tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            userNames.add(tmp[i].trim());
+                        }
+                        break;
+                    case "passwords of servers":
+                        tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            passwds.add(tmp[i].trim());
+                        }
+                        break;
+                    case "password of root user":
+                        rootPassword = arr[1];
+                        break;
+                    case "IP of controller":
+                        controllerIp = arr[1];
+                        break;
+                    case "port of controller":
+                        controllerPort = Integer.parseInt(arr[1]);
+                        break;
+                    case "running directory of controller":
+                        controllerRunDir = arr[1];
+                        break;
+                    case "result output directory":
+                        resultOutputDirectory = arr[1];
+                        break;
+                    case "database schema":
+                        databaseSchemaInput = arr[1];
+                        break;
+                    case "cardinality constraints":
+                        cardinalityConstraintsInput = arr[1];
+                        break;
+                    case "non-equi join constraints":
+                        nonEquiJoinConstraintsInput = arr[1];
+                        break;
+                    case "path of log4j.properties":
+                        log4jConfFile = arr[1];
+                        break;
+                    case "path of JLink":
+                        jLinkPath = arr[1];
+                        break;
+                    case "IPs of data generators":
+                        tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            dataGeneratorIps.add(tmp[i].trim());
+                        }
+                        break;
+                    case "ports of data generators":
+                        tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            dataGeneratorPorts.add(Integer.parseInt(tmp[i].trim()));
+                        }
+                        break;
+                    case "thread numbers of data generators":
+                        tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            dataGeneratorThreadNums.add(Integer.parseInt(tmp[i].trim()));
+                        }
+                        break;
+                    case "running directories of data generators":
+                        tmp = arr[1].split(";");
+                        for (int i = 0; i < tmp.length; i++) {
+                            dataGeneratorRunDirs.add(tmp[i].trim());
+                        }
+                        break;
+                    case "data output path":
+                        dataOutputPath = arr[1];
+                        break;
+                    case "joinTableOutputPath":
+                        joinTableOutputPath = arr[1];
+                        break;
+                    case "thread numbers of query instantiation":
+                        queryInstantiationThreadNum = Integer.parseInt(arr[1]);
+                        break;
+                    case "maximum iterations of query instantiation":
+                        queryInstantiationMaxIterations = Integer.parseInt(arr[1]);
+                        break;
+                    case "global relative error of query instantiation":
+                        queryInstantiationGlobalRelativeError = Double.parseDouble(arr[1]);
+                        break;
+                    case "maximum iterations of parameter instantiation":
+                        paraInstantiationMaxIterations = Integer.parseInt(arr[1]);
+                        break;
+                    case "relative error of parameter instantiation":
+                        paraInstantiationRelativeError = Double.parseDouble(arr[1]);
+                        break;
+                    case "maximum number of shuffle":
+                        shuffleMaxNum = Integer.parseInt(arr[1]);
+                        break;
+                    case "maximum size of PKVs":
+                        pkvsMaxSize = Integer.parseInt(arr[1]);
+                        break;
+                    case "maximum num of join table file in read or write queue":
+                        maxNumJoinInfoInMemoryInQueue = Integer.parseInt(arr[1]);
+                        break;
+                    case "maximum size of join table in memory to write":
+                        maxSizeofJoinInfoInMemoryToWrite = Integer.parseInt(arr[1]);
+                        break;
+                    case "maximum size of join table in memory to read":
+                        maxSizeofJoinInfoInMemoryToRead = Integer.parseInt(arr[1]);
+                        break;
+                    case "minimum num of join table status to read":
+                        minSizeofJoinInfoStatus = Integer.parseInt(arr[1]);
+                        break;
+                    case "join info output path":
+                        joinTableOutputPath = arr[1].trim();
+                        break;
+                    default:
+                        System.out.println("Unable to identify the configuration item!\n" +
+                                "Error input line: " + inputLine);
+                        System.exit(0);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error input line: " + inputLine);
+            e.printStackTrace();
+            System.exit(0);
+        }
+    }
 
-	public List<String> getUserNames() {
-		return userNames;
-	}
+    public List<String> getIps() {
+        return ips;
+    }
 
-	public List<String> getPasswds() {
-		return passwds;
-	}
+    public List<String> getUserNames() {
+        return userNames;
+    }
 
-	public String getRootPassword() {
-		return rootPassword;
-	}
+    public List<String> getPasswds() {
+        return passwds;
+    }
 
-	public String getControllerIp() {
-		return controllerIp;
-	}
+    public String getRootPassword() {
+        return rootPassword;
+    }
 
-	public int getControllerPort() {
-		return controllerPort;
-	}
+    public String getControllerIp() {
+        return controllerIp;
+    }
 
-	public String getControllerRunDir() {
-		return controllerRunDir;
-	}
+    public int getControllerPort() {
+        return controllerPort;
+    }
 
-	public String getDatabaseSchemaInput() {
-		return databaseSchemaInput;
-	}
+    public String getControllerRunDir() {
+        return controllerRunDir;
+    }
 
-	public String getCardinalityConstraintsInput() {
-		return cardinalityConstraintsInput;
-	}
+    public String getDatabaseSchemaInput() {
+        return databaseSchemaInput;
+    }
 
-	public String getNonEquiJoinConstraintsInput() {
-		return nonEquiJoinConstraintsInput;
-	}
+    public String getCardinalityConstraintsInput() {
+        return cardinalityConstraintsInput;
+    }
 
-	public String getLog4jConfFile() {
-		return log4jConfFile;
-	}
+    public String getNonEquiJoinConstraintsInput() {
+        return nonEquiJoinConstraintsInput;
+    }
 
-	public String getjLinkPath() {
-		return jLinkPath;
-	}
+    public String getLog4jConfFile() {
+        return log4jConfFile;
+    }
 
-	public List<String> getDataGeneratorIps() {
-		return dataGeneratorIps;
-	}
+    public String getjLinkPath() {
+        return jLinkPath;
+    }
 
-	public List<Integer> getDataGeneratorPorts() {
-		return dataGeneratorPorts;
-	}
+    public List<String> getDataGeneratorIps() {
+        return dataGeneratorIps;
+    }
 
-	public List<Integer> getDataGeneratorThreadNums() {
-		return dataGeneratorThreadNums;
-	}
+    public List<Integer> getDataGeneratorPorts() {
+        return dataGeneratorPorts;
+    }
 
-	public List<String> getDataGeneratorRunDirs() {
-		return dataGeneratorRunDirs;
-	}
+    public List<Integer> getDataGeneratorThreadNums() {
+        return dataGeneratorThreadNums;
+    }
 
-	public String getDataOutputPath() {
-		return dataOutputPath;
-	}
+    public List<String> getDataGeneratorRunDirs() {
+        return dataGeneratorRunDirs;
+    }
 
-	public String getJoinTableOutputPath() {return joinTableOutputPath;}
+    public String getDataOutputPath() {
+        return dataOutputPath;
+    }
 
-	public int getQueryInstantiationThreadNum() {
-		return queryInstantiationThreadNum;
-	}
+    public String getJoinTableOutputPath() {
+        return joinTableOutputPath;
+    }
 
-	public int getQueryInstantiationMaxIterations() {
-		return queryInstantiationMaxIterations;
-	}
+    public int getQueryInstantiationThreadNum() {
+        return queryInstantiationThreadNum;
+    }
 
-	public int getParaInstantiationMaxIterations() {
-		return paraInstantiationMaxIterations;
-	}
+    public int getQueryInstantiationMaxIterations() {
+        return queryInstantiationMaxIterations;
+    }
 
-	public double getQueryInstantiationGlobalRelativeError() {
-		return queryInstantiationGlobalRelativeError;
-	}
+    public int getParaInstantiationMaxIterations() {
+        return paraInstantiationMaxIterations;
+    }
 
-	public double getParaInstantiationRelativeError() {
-		return paraInstantiationRelativeError;
-	}
+    public double getQueryInstantiationGlobalRelativeError() {
+        return queryInstantiationGlobalRelativeError;
+    }
 
-	public int getShuffleMaxNum() {
-		return shuffleMaxNum;
-	}
+    public double getParaInstantiationRelativeError() {
+        return paraInstantiationRelativeError;
+    }
 
-	public int getPkvsMaxSize() {
-		return pkvsMaxSize;
-	}
+    public int getShuffleMaxNum() {
+        return shuffleMaxNum;
+    }
 
-	@Override
-	public String toString() {
-		return "Configurations [\nips=" + ips + ", \nuserNames=" + userNames + ", \npasswds=" + passwds + ", \ncontrollerIp="
-				+ controllerIp + ", controllerPort=" + controllerPort + ", controllerRunDir=" + controllerRunDir
-				+ ", \ndatabaseSchemaInput=" + databaseSchemaInput + ", \ncardinalityConstraintsInput="
-				+ cardinalityConstraintsInput + ", \nnonEquiJoinConstraintsInput=" + nonEquiJoinConstraintsInput
-				+ ", \nlog4jConfFile=" + log4jConfFile + "\njLinkPath=" + jLinkPath + ", \ndataGeneratorIps=" + dataGeneratorIps
-				+ ", \ndataGeneratorPorts=" + dataGeneratorPorts + ", \ndataGeneratorThreadNums=" + dataGeneratorThreadNums
-				+ ", \ndataGeneratorRunDirs=" + dataGeneratorRunDirs + ", \ndataOutputPath=" + dataOutputPath
-				+ ", \nqueryInstantiationThreadNum=" + queryInstantiationThreadNum + ", \nqueryInstantiationMaxIterations="
-				+ queryInstantiationMaxIterations + ", \nparaInstantiationMaxIterations=" + paraInstantiationMaxIterations
-				+ ", \nqueryInstantiationGlobalRelativeError=" + queryInstantiationGlobalRelativeError
-				+ ", \nparaInstantiationRelativeError=" + paraInstantiationRelativeError + ", \nshuffleMaxNum=" 
-				+ shuffleMaxNum + ", \npkvsMaxSize=" + pkvsMaxSize + "]";
-	}
+    public int getPkvsMaxSize() {
+        return pkvsMaxSize;
+    }
 
-	// test
-	public static void main(String[] args) {
-		Configurations configurations = new Configurations(".//test//touchstone.conf");
-		System.out.println(configurations);
-	}
+    @Override
+    public String toString() {
+        return "Configurations [\nips=" + ips + ", \nuserNames=" + userNames + ", \npasswds=" + passwds + ", \ncontrollerIp="
+                + controllerIp + ", controllerPort=" + controllerPort + ", controllerRunDir=" + controllerRunDir
+                + ", \ndatabaseSchemaInput=" + databaseSchemaInput + ", \ncardinalityConstraintsInput="
+                + cardinalityConstraintsInput + ", \nnonEquiJoinConstraintsInput=" + nonEquiJoinConstraintsInput
+                + ", \nlog4jConfFile=" + log4jConfFile + "\njLinkPath=" + jLinkPath + ", \ndataGeneratorIps=" + dataGeneratorIps
+                + ", \ndataGeneratorPorts=" + dataGeneratorPorts + ", \ndataGeneratorThreadNums=" + dataGeneratorThreadNums
+                + ", \ndataGeneratorRunDirs=" + dataGeneratorRunDirs + ", \ndataOutputPath=" + dataOutputPath
+                + ", \nqueryInstantiationThreadNum=" + queryInstantiationThreadNum + ", \nqueryInstantiationMaxIterations="
+                + queryInstantiationMaxIterations + ", \nparaInstantiationMaxIterations=" + paraInstantiationMaxIterations
+                + ", \nqueryInstantiationGlobalRelativeError=" + queryInstantiationGlobalRelativeError
+                + ", \nparaInstantiationRelativeError=" + paraInstantiationRelativeError + ", \nshuffleMaxNum="
+                + shuffleMaxNum + ", \npkvsMaxSize=" + pkvsMaxSize + "]";
+    }
 }

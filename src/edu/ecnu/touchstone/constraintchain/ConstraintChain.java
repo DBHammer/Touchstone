@@ -20,7 +20,7 @@ public class ConstraintChain implements Serializable {
     public ConstraintChain(ConstraintChain constraintChain) {
         super();
         this.tableName = constraintChain.tableName;
-        this.nodes = new ArrayList<CCNode>();
+        this.nodes = new ArrayList<>();
         for (int i = 0; i < constraintChain.nodes.size(); i++) {
             this.nodes.add(new CCNode(constraintChain.nodes.get(i)));
         }

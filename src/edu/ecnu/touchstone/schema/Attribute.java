@@ -54,7 +54,12 @@ public class Attribute implements Serializable {
     }
 
     public String geneData() {
-        return dataTypeInfo.geneData().toString();
+        Object data = dataTypeInfo.geneData();
+        if (data == null) {
+            return null;
+        } else {
+            return data.toString();
+        }
     }
 
     public String getAttrName() {

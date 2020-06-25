@@ -48,7 +48,11 @@ public class RunController {
                 configurations.getQueryInstantiationMaxIterations(),
                 configurations.getQueryInstantiationGlobalRelativeError(),
                 computingThreadPool);
-        queryInstantiator.iterate();
+        try {
+            queryInstantiator.iterate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         List<Parameter> parameters = queryInstantiator.getParameters();
         try {
             BufferedWriter out = new BufferedWriter(new FileWriter(configurations.getResultOutputDirectory()));

@@ -144,7 +144,7 @@ public class FilterOperation implements Serializable {
         for (int i = 0; i < attrNames.size(); i++) {
             String value = attributeValueMap.get(attrNames.get(i));
             // if any attribute of this expression is null, the value of expression is null
-            if (value.equals("null")) {
+            if (value == null || value.equals("null")) {
                 return false;
             }
             variables.get(i).setValue(Double.parseDouble(value));

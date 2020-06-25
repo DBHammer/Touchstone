@@ -100,7 +100,6 @@ public class CardinalityTest {
                         continue;
                     }
                     if (inputLine.contains("#")) {
-
                         Matcher m = p.matcher(inputLine);
                         while (m.find()) {
                             String paraInfo = m.group();

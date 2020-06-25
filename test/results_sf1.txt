@@ -180,8 +180,11 @@ select count(*) from orders, lineitem where o_orderkey = l_orderkey and l_shipmo
 
 
 Query 13:
-select count(*) from customer, orders where c_custkey = o_custkey and o_comment not like '%#32,0,0#%';
-1483918
+select count(*) from customer left join orders on c_custkey = o_custkey;
+1550004
+
+select count(*) from customer left join orders on c_custkey = o_custkey and o_comment not like '%#32,0,0#%';
+1533922
 
 
 Query 14:

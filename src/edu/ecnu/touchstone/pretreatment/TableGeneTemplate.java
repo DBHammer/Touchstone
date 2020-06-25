@@ -391,12 +391,22 @@ public class TableGeneTemplate implements Serializable {
             attributeValueMap.put(attribute.getAttrName(), tuple[attribute.getIndex()]);
         }
 
+        int uniqueKeyIndex = 0;
+        for (Key key : keys) {
+            if (key.getIndex() == -1) {
+                uniqueKeyIndex = -1;
+                break;
+            }
+        }
+
         // for Date and DateTime typed attributes, convert their values from long form to string form
         for (int i = 0; i < attributes.size(); i++) {
-            if ("date".equals(attributes.get(i).getDataType())) {
-                tuple[keys.size() + i] = dateSdf.format(new Date(Long.parseLong(tuple[keys.size() + i])));
-            } else if ("datetime".equals(attributes.get(i).getDataType())) {
-                tuple[keys.size() + i] = dateTimeSdf.format(new Date(Long.parseLong(tuple[keys.size() + i])));
+            if(tuple[keys.size() + i + uniqueKeyIndex]!=null){
+                if ("date".equals(attributes.get(i).getDataType())) {
+                    tuple[keys.size() + i + uniqueKeyIndex] = dateSdf.format(new Date(Long.parseLong(tuple[keys.size() + i + uniqueKeyIndex])));
+                } else if ("datetime".equals(attributes.get(i).getDataType())) {
+                    tuple[keys.size() + i + uniqueKeyIndex] = dateTimeSdf.format(new Date(Long.parseLong(tuple[keys.size() + i + uniqueKeyIndex])));
+                }
             }
         }
 
@@ -881,7 +891,10 @@ public class TableGeneTemplate implements Serializable {
             for (CCNode node : nodes) {
                 if (node.getType() == 2 || node.getType() == 3) {
                     FKJoin fkJoin = (FKJoin) node.getNode();
-                    count += fkJoin.getFkJoinAdjustment().getRules().size();
+                    try {
+                        count += fkJoin.getFkJoinAdjustment().getRules().size();
+                    }catch (Exception e){
+                    }
                 }
             }
         }

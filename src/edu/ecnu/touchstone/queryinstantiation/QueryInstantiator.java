@@ -99,38 +99,37 @@ public class QueryInstantiator {
             }
         }
 
-        attrEquaFilterOperMap = new HashMap<String, ArrayList<FilterOperation>>();
-        for (int i = 0; i < constraintChains.size(); i++) {
-            String tableName = constraintChains.get(i).getTableName();
-            List<CCNode> nodes = constraintChains.get(i).getNodes();
-            for (int j = 0; j < nodes.size(); j++) {
+        attrEquaFilterOperMap = new HashMap<>();
+        for (ConstraintChain constraintChain : constraintChains) {
+            String tableName = constraintChain.getTableName();
+            List<CCNode> nodes = constraintChain.getNodes();
+            for (CCNode node : nodes) {
                 // is not a filter
-                if (nodes.get(j).getType() != 0) {
+                if (node.getType() != 0) {
                     continue;
                 }
-                Filter filter = (Filter) nodes.get(j).getNode();
+                Filter filter = (Filter) node.getNode();
                 FilterOperation[] filterOperations = filter.getFilterOperations();
-                for (int k = 0; k < filterOperations.length; k++) {
-                    String operator = filterOperations[k].getOperator();
+                for (FilterOperation filterOperation : filterOperations) {
+                    String operator = filterOperation.getOperator();
                     // is not a equality filter operation
                     if (!operator.equals("=") && !operator.equals("like") && !operator.matches("in\\([0-9]+\\)")) {
                         continue;
                     }
-                    String attrName = filterOperations[k].getExpression();
+                    String attrName = filterOperation.getExpression();
                     String tmp = tableName + "." + attrName;
                     if (!attrEquaFilterOperMap.containsKey(tmp)) {
                         attrEquaFilterOperMap.put(tmp, new ArrayList<FilterOperation>());
                     }
-                    attrEquaFilterOperMap.get(tmp).add(filterOperations[k]);
+                    attrEquaFilterOperMap.get(tmp).add(filterOperation);
                 }
             }
         }
 
-        for (int i = 0; i < nonEquiJoinConstraints.size(); i++) {
-            NonEquiJoinConstraint nonEquiJoinConstraint = nonEquiJoinConstraints.get(i);
+        for (NonEquiJoinConstraint nonEquiJoinConstraint : nonEquiJoinConstraints) {
             String operator = nonEquiJoinConstraint.getOperator();
             // is not a equality filter operation
-            if (!operator.equals("=") && !operator.equals("like") && !operator.matches("in\\([0-9]+\\)")) {
+            if (!"=".equals(operator) && !"like".equals(operator) && !operator.matches("in\\([0-9]+\\)")) {
                 continue;
             }
             int id = nonEquiJoinConstraint.getId();
@@ -150,7 +149,7 @@ public class QueryInstantiator {
 				}
 			}*/
             if (!attrEquaFilterOperMap.containsKey(tmp)) {
-                attrEquaFilterOperMap.put(tmp, new ArrayList<FilterOperation>());
+                attrEquaFilterOperMap.put(tmp, new ArrayList<>());
             }
             attrEquaFilterOperMap.get(tmp).add(new FilterOperation(id, expression, operator, probability));
         }
@@ -224,20 +223,25 @@ public class QueryInstantiator {
             Collections.shuffle(equaFilterOperations);
 
             float sum = 0;
-            for (int i = 0; i < equaFilterOperations.size(); i++) {
-                sum += equaFilterOperations.get(i).getProbability();
+            for (FilterOperation equaFilterOperation : equaFilterOperations) {
+                sum += equaFilterOperation.getProbability();
             }
             // if overflow > 0, some instantiated parameter values (with same expected probability) must be the same
             float overflow = sum - 1;
             probParaValueMap.clear();
 
-            for (int i = 0; i < equaFilterOperations.size(); i++) {
-                String dataType = attribute.getDataType();
-                String operator = equaFilterOperations.get(i).getOperator();
-                float probability = equaFilterOperations.get(i).getProbability();
+            for (FilterOperation equaFilterOperation : equaFilterOperations) {
+                String dataType="";
+                try {
+                    dataType = attribute.getDataType();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                String operator = equaFilterOperation.getOperator();
+                float probability = equaFilterOperation.getProbability();
 
-                int id = equaFilterOperations.get(i).getId();
-                List<String> values = new ArrayList<String>();
+                int id = equaFilterOperation.getId();
+                List<String> values = new ArrayList<>();
                 long cardinality = (long) (table.getTableSize() * probability);
 
                 if (operator.equals("=")) {
@@ -267,7 +271,6 @@ public class QueryInstantiator {
                     if (overflow > 0 && probParaValueMap.containsKey(subProbability)) {
                         values.add(probParaValueMap.get(subProbability));
                         overflow -= subProbability;
-                        j = 1;
                     } else {
                         j = 0;
                         if (dataType.equals("integer")) {
@@ -295,7 +298,7 @@ public class QueryInstantiator {
                 }
 
                 if (values.size() == 0) {
-                    logger.error("\n\tCan not handle the basic filter operation: " + equaFilterOperations.get(i));
+                    logger.error("\n\tCan not handle the basic filter operation: " + equaFilterOperation);
                     System.exit(0);
                 } else {
                     parameters.add(new Parameter(id, values, cardinality, 0));

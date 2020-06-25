@@ -68,6 +68,7 @@ public class SchemaReader {
 
         List<Table> tables = new ArrayList<Table>();
         for (String tmp : tableInfos) {
+            System.out.println(tmp);
             tmp = tmp.substring(tmp.indexOf('[') + 1, tmp.indexOf(']'));
             String[] tableInfoArr = tmp.split(";", -1);
 
@@ -104,7 +105,7 @@ public class SchemaReader {
                 if (!tableInfoArr[j].matches("p\\([\\s\\S^\\]]+\\)") &&
                         !tableInfoArr[j].matches("f\\([\\s\\S^\\]]+\\)")) {
                     if (tableInfoArr[j].split(",").length != 2) {
-                        logger.error("\n\tExpect to have a comma! " + "Error input: " + tableInfoArr[j]);
+                        logger.error("\n\tExpect to have a comma! " + "Error input: " + tableName + ";" + tableInfoArr[j]);
                     }
                     String attrName = tableInfoArr[j].split(",")[0];
                     String dataType = tableInfoArr[j].split(",")[1];
@@ -114,7 +115,7 @@ public class SchemaReader {
                             continue;
                         } else {
                             logger.error("\n\tThe data type of primary key and foreign key must be integer! "
-                                    + "Error input: " + tableInfoArr[j]);
+                                    + "Error input: " + tableName + ";" + tableInfoArr[j]);
                             System.exit(0);
                         }
                     }
@@ -124,7 +125,7 @@ public class SchemaReader {
                         dataTypeInfo = newTouchstoneDataType(dataType, dataInfo);
                     } catch (Exception e) {
                         logger.error("\n\tThe basic data characteristic information can not be recognized! "
-                                + "Error input: " + tableInfoArr[j] + ", " + dataInfo);
+                                + "Error input: " + tableName + ";" + tableInfoArr[j] + ", " + dataInfo);
                         e.printStackTrace();
                         System.exit(0);
                     }
@@ -149,7 +150,7 @@ public class SchemaReader {
             case "integer":
                 if (dataInfo != null) {
                     dataTypeInfo = new TSInteger(Float.parseFloat(arr[0]), Long.parseLong(arr[1]),
-                            Long.parseLong(arr[2]), Long.parseLong(arr[3]));
+                               Long.parseLong(arr[2]), Long.parseLong(arr[3]));
                 } else {
                     dataTypeInfo = new TSInteger();
                 }
@@ -187,8 +188,8 @@ public class SchemaReader {
             case "varchar":
                 if (dataInfo != null) {
                     if (arr.length > 3) {
-                        dataTypeInfo = new TSVarchar(Float.parseFloat(arr[0]),
-                                Float.parseFloat(arr[1]), Integer.parseInt(arr[2]), Integer.parseInt(arr[3]));
+                        dataTypeInfo = new TSVarchar(Float.parseFloat(arr[1]),
+                                Float.parseFloat(arr[2]), (int) Float.parseFloat(arr[3]), Integer.parseInt(arr[0]));
                     } else {
                         dataTypeInfo = new TSVarchar(Float.parseFloat(arr[0]),
                                 Float.parseFloat(arr[1]), Integer.parseInt(arr[2]));

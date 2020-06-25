@@ -13,7 +13,7 @@ public class FKJoinAdjustment {
 
     // record the join status for all 'FKJoin' node of this foreign key
     // all 'FKJoinAdjustment' only share one array 'joinStatuses'
-    private boolean[] joinStatuses = null;
+    private boolean[] joinStatuses;
 
     // we avoid to generate a non-existent combined join statuses for the foreign key by adding
     // 'rules' according to the join information of the referenced primary key
@@ -40,14 +40,14 @@ public class FKJoinAdjustment {
 
     public boolean canJoin() {
         loop:
-        for (int i = 0; i < rules.size(); i++) {
-            boolean[] cause = rules.get(i).getCause();
+        for (FKJoinAdjustRule rule : rules) {
+            boolean[] cause = rule.getCause();
             for (int j = 0; j < cause.length; j++) {
                 if (cause[j] != joinStatuses[j]) {
                     continue loop;
                 }
             }
-            return joinStatuses[order] = rules.get(i).getEffect();
+            return joinStatuses[order] = rule.getEffect();
         }
 
         if (Math.random() < probability) {

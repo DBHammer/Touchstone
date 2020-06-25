@@ -59,7 +59,7 @@ public class TSDate implements TSDataTypeInfo {
     }
 
     protected void init() {
-        sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf = new SimpleDateFormat("yyyyMMdd");
         defaultStartTime = "1900-01-01";
         defaultEndTime = "2000-12-31";
     }

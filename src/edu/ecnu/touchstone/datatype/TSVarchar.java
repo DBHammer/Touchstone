@@ -128,7 +128,7 @@ public class TSVarchar implements TSDataTypeInfo {
         String randomString;
         while (true) {
             if (cardinality > 0) {
-                int randomIndex = (int) (Math.random() * cardinality - equalCandidates.size() - likeCandidates.size());
+                int randomIndex = (int) (Math.random() * (cardinality - equalCandidates.size() - likeCandidates.size()));
                 randomString = seeds[randomIndex % seeds.length];
             } else {
                 randomString = getRandomString();
@@ -149,6 +149,9 @@ public class TSVarchar implements TSDataTypeInfo {
 
     // overall control needs to be done in call place for these two functions
     public String addEqualCandidate(float probability) {
+        if (maxLength == 0) {
+            return getRandomString(1);
+        }
         String candidate = getRandomString();
         while (equalCandidateSet.contains(candidate) || "".equals(candidate)) {
             candidate = getRandomString();
@@ -195,7 +198,13 @@ public class TSVarchar implements TSDataTypeInfo {
 
     private String getRandomString() {
         int length = (int) (Math.random() * (maxLength - minLength + 1)) + minLength;
-        return getRandomString(length);
+        try {
+            return getRandomString(length);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+            return null;
+        }
     }
 
     private String getRandomString(int length) {

@@ -23,6 +23,9 @@ public class JoinInfoMerger {
      */
     public static Map<Integer, ArrayList<long[]>> merge(List<Map<Integer,
             ArrayList<long[]>>> pkJoinInfoList, int pkvsMaxSize) {
+        if(pkJoinInfoList.isEmpty()){
+            return new HashMap<>();
+        }
         Map<Integer, ArrayList<long[]>> mergedPkJoinInfo = pkJoinInfoList.get(0);
 
         for (int i = 1; i < pkJoinInfoList.size(); i++) {

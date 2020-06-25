@@ -18,7 +18,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 // main functions: 
 // 1. get the partial order among tables
@@ -64,9 +63,6 @@ public class Preprocessor {
         ObjectInputStream ois = new ObjectInputStream(new FileInputStream(".//data//template"));
         TableGeneTemplate template2 = (TableGeneTemplate) ois.readObject();
         ois.close();
-        System.out.println("-----------------------");
-        System.out.println(template);
-        System.out.println(template2);
     }
 
     // get the partial order among tables according to the foreign key constraints
@@ -76,15 +72,14 @@ public class Preprocessor {
         Set<String> nonMetaTables = new HashSet<String>();
         // map: table -> referenced tables (foreign key constraint)
         Map<String, ArrayList<String>> tableDependencyInfo = new HashMap<String, ArrayList<String>>();
-        for (int i = 0; i < tables.size(); i++) {
-            Table table = tables.get(i);
+        for (Table table : tables) {
             allTables.add(table.getTableName());
             if (table.getForeignKeys().size() != 0) {
                 nonMetaTables.add(table.getTableName());
                 List<ForeignKey> foreignKeys = table.getForeignKeys();
                 ArrayList<String> referencedTables = new ArrayList<String>();
-                for (int j = 0; j < foreignKeys.size(); j++) {
-                    referencedTables.add(foreignKeys.get(j).getReferencedKey().split("\\.")[0]);
+                for (ForeignKey foreignKey : foreignKeys) {
+                    referencedTables.add(foreignKey.getReferencedKey().split("\\.")[0]);
                 }
                 tableDependencyInfo.put(table.getTableName(), referencedTables);
             }
@@ -92,8 +87,7 @@ public class Preprocessor {
 
         // the remaining tables are metadata tables
         allTables.removeAll(nonMetaTables);
-        Set<String> partialOrder = new LinkedHashSet<String>();
-        partialOrder.addAll(allTables);
+        Set<String> partialOrder = new LinkedHashSet<String>(allTables);
         Iterator<Entry<String, ArrayList<String>>> iterator = tableDependencyInfo.entrySet().iterator();
         while (true) {
             while (iterator.hasNext()) {
@@ -109,19 +103,18 @@ public class Preprocessor {
         }
 
         logger.debug("\nThe partial order of tables: \n\t" + partialOrder);
-        return partialOrder.stream().collect(Collectors.toList());
+        return new ArrayList<>(partialOrder);
     }
 
     // get the generation templates of all tables
     public Map<String, TableGeneTemplate> getTableGeneTemplates(int shuffleMaxNum, int pkvsMaxSize) {
         Map<Integer, Parameter> parameterMap = new HashMap<Integer, Parameter>();
-        for (int j = 0; j < parameters.size(); j++) {
-            parameterMap.put(parameters.get(j).getId(), parameters.get(j));
+        for (Parameter parameter : parameters) {
+            parameterMap.put(parameter.getId(), parameter);
         }
 
         Map<String, TableGeneTemplate> tableGeneTemplateMap = new HashMap<String, TableGeneTemplate>();
-        for (int i = 0; i < tables.size(); i++) {
-            Table table = tables.get(i);
+        for (Table table : tables) {
             String tableName = table.getTableName();
             long tableSize = table.getTableSize();
             String pkStr = table.getPrimaryKey().toString();
@@ -138,22 +131,30 @@ public class Preprocessor {
             List<String> primaryKey = table.getPrimaryKey();
             List<ForeignKey> foreignKeys = table.getForeignKeys();
             loop:
-            for (int j = 0; j < primaryKey.size(); j++) {
-                for (int k = 0; k < foreignKeys.size(); k++) {
-                    if (foreignKeys.get(k).getAttrName().equals(primaryKey.get(j).split("\\.")[1])) {
+            for (String s : primaryKey) {
+                for (ForeignKey foreignKey : foreignKeys) {
+                    if (foreignKey.getAttrName().equals(s.split("\\.")[1])) {
                         continue loop;
                     }
                 }
-                keys.add(new Key(primaryKey.get(j), 0,
-                        table.getKeyIndex().get(primaryKey.get(j).split("\\.")[1])));
+                try{
+                keys.add(new Key(s, 0,
+                        table.getKeyIndex().get(s.split("\\.")[1])));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             // add an attribute to ensure the uniqueness of the primary key
             if (keys.size() == 0) {
                 keys.add(new Key("unique_number", 0, -1));
             }
             for (int j = 0; j < foreignKeys.size(); j++) {
-                keys.add(new Key(tableName + "." + foreignKeys.get(j).getAttrName(), 1,
-                        table.getKeyIndex().get(foreignKeys.get(j).getAttrName())));
+                try {
+                    keys.add(new Key(tableName + "." + foreignKeys.get(j).getAttrName(), 1,
+                            table.getKeyIndex().get(foreignKeys.get(j).getAttrName())));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             // tableConstraintChains
@@ -209,41 +210,41 @@ public class Preprocessor {
                         continue;
                     }
                 }
-                String fksStr = "[";
+                StringBuilder fksStr = new StringBuilder("[");
                 for (int k = index; k <= j; k++) {
-                    fksStr = fksStr + foreignKeys.get(k).getReferencedKey();
+                    fksStr.append(foreignKeys.get(k).getReferencedKey());
                     if (k != j) {
-                        fksStr = fksStr + ", ";
+                        fksStr.append(", ");
                     }
                 }
-                fksStr = fksStr + "]";
-                referencedKeys.add(fksStr);
+                fksStr.append("]");
+                referencedKeys.add(fksStr.toString());
                 index = j + 1;
             }
 
             // referKeyForeKeyMap
-            for (int j = 0; j < foreignKeys.size(); j++) {
-                referKeyForeKeyMap.put(foreignKeys.get(j).getReferencedKey(),
-                        tableName + "." + foreignKeys.get(j).getAttrName());
+            for (ForeignKey foreignKey : foreignKeys) {
+                referKeyForeKeyMap.put(foreignKey.getReferencedKey(),
+                        tableName + "." + foreignKey.getAttrName());
             }
 
             // localParameterMap
-            for (int j = 0; j < tableConstraintChains.size(); j++) {
-                List<CCNode> nodes = tableConstraintChains.get(j).getNodes();
-                for (int k = 0; k < nodes.size(); k++) {
-                    if (nodes.get(k).getType() == 0) {
-                        Filter filter = (Filter) nodes.get(k).getNode();
+            for (ConstraintChain tableConstraintChain : tableConstraintChains) {
+                List<CCNode> nodes = tableConstraintChain.getNodes();
+                for (CCNode node : nodes) {
+                    if (node.getType() == 0) {
+                        Filter filter = (Filter) node.getNode();
                         FilterOperation[] operations = filter.getFilterOperations();
-                        for (int l = 0; l < operations.length; l++) {
-                            localParameterMap.put(operations[l].getId(), parameterMap.get(operations[l].getId()));
+                        for (FilterOperation operation : operations) {
+                            localParameterMap.put(operation.getId(), parameterMap.get(operation.getId()));
                         }
                     }
                 }
             }
 
             // attributeMap
-            for (int j = 0; j < attributes.size(); j++) {
-                attributeMap.put(attributes.get(j).getAttrName(), attributes.get(j));
+            for (Attribute attribute : attributes) {
+                attributeMap.put(attribute.getAttrName(), attribute);
             }
 
             TableGeneTemplate tableGeneTemplate = new TableGeneTemplate(tableName, tableSize, pkStr,

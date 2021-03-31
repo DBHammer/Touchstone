@@ -10,7 +10,7 @@
 
 Please refer to "research paper - touchstone.pdf" for the conference paper, and "technical report - touchstone.pdf" for the technical report. We give a more detailed description and analysis of the involved algorithms and add more experiments in the technical report.
 
-In order to make it easier for everyone to use Touchstone and repeat our work, we open the source code of Touchstone here, and give the executable files as well as a lot of example inputs (see "running examples" folder).
+In order to make it easier for everyone to use Touchstone and repeat our work, we open the source code of Touchstone here, and give the executable files as well as a lot of example inputs **(see "running examples" folder)**.
 
 
 ### Application scenarios and related works

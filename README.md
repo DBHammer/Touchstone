@@ -1,5 +1,5 @@
 
-<font size=5><div align="right"><a href="https://github.com/daseECNU/Touchstone/blob/master/README-ZH.md">中文 版本</a></div>
+<font size=5><div align="right"><a href="https://github.com/DBHammer/Touchstone/blob/master/README-ZH.md">中文 版本</a></div>
 </font>
 
 ### Introduction to Touchstone
@@ -50,9 +50,9 @@ Note that 1) the data in the tables strictly follows the specified data characte
 
 ### Contact
 
-R & D team: CEDAR project team, School of Data Science and Engineering, East China Normal University.
+R & D team: DBHammer project team, School of Data Science and Engineering, East China Normal University.
 
-Key members: Professor Rong Zhang, Yuming Li, Ph.D candidate.
+Key members: Professor Rong Zhang; Qingshuai Wang, Ph.D candidate; Yuming Li, Ph.D.
 
 Cooperators: Xiaoyan Yang, Zhenjie Zhang (Singapore R&D, Yitu Technology Ltd.).
 
@@ -60,7 +60,7 @@ Address: No. 3663, North Zhongshan Road, Putuo District, Shanghai.
 
 Zip code: 200062.
 
-Email: liyuming@stu.ecnu.edu.cn.
+Email: qswang@stu.ecnu.edu.cn.
 
 For any question about Touchstone, you can contact us by email, and we will give you feedback.
 

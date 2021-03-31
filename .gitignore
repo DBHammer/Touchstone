@@ -1,3 +1,6 @@
+# user defined
+*.iml
+
 # CMake
 cmake-build-*/
 

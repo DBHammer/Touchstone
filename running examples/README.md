@@ -1,11 +1,3 @@
-#  Touchstone—Github版本使用说明
-
-> **编撰人：王清帅，李宇明**
->
-> **单位：华东师范大学 数据科学与工程学院**
-
-在Github仓库的[running examples](https://github.com/daseECNU/Touchstone/tree/master/running%20examples)中，我们提供了可直接运行的jar打包程序，运行环境为：**Linux & Java 1.8+** ，本篇文档将对程序的使用做出详细说明。
-
 ## Overview
 
 ### Overview of the program file

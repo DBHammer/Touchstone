@@ -4,11 +4,11 @@ import edu.ecnu.touchstone.constraintchain.*;
 import edu.ecnu.touchstone.datatype.TSInteger;
 import edu.ecnu.touchstone.datatype.TSVarchar;
 import edu.ecnu.touchstone.nonequijoin.NonEquiJoinConstraint;
-import edu.ecnu.touchstone.nonequijoin.NonEquiJoinConstraintsReader;
 import edu.ecnu.touchstone.run.Touchstone;
 import edu.ecnu.touchstone.schema.Attribute;
 import edu.ecnu.touchstone.schema.SchemaReader;
 import edu.ecnu.touchstone.schema.Table;
+import edu.ecnu.touchstone.threadpool.TouchStoneThreadPool;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
@@ -57,24 +57,25 @@ public class QueryInstantiator {
         System.setProperty("com.wolfram.jlink.libdir",
                 "C://Program Files//Wolfram Research//Mathematica//10.0//SystemFiles//Links//JLink");
 
-//		SchemaReader schemaReader = new SchemaReader();
-//		List<Table> tables = schemaReader.read(".//test//input//tpch_schema_sf_1.txt");
-//		ConstraintChainsReader constraintChainsReader = new ConstraintChainsReader();
-//		List<ConstraintChain> constraintChains = constraintChainsReader.read(".//test//input//tpch_cardinality_constraints_sf_1.txt");
-//		ComputingThreadPool computingThreadPool = new ComputingThreadPool(2, 20, 0.00001);
-//		QueryInstantiator queryInstantiator = new QueryInstantiator(tables, constraintChains, null, 20, 0.00001, computingThreadPool);
-//		queryInstantiator.iterate();
-
         SchemaReader schemaReader = new SchemaReader();
-        List<Table> tables = schemaReader.read(".//test//input//function_test_schema_0.txt");
+        List<Table> tables = schemaReader.read("/Users/wangqingshuai/Github/Touchstone/runningexamples/input/tpch_schema_sf_1.txt");
         ConstraintChainsReader constraintChainsReader = new ConstraintChainsReader();
-        List<ConstraintChain> constraintChains = constraintChainsReader.read(".//test//input//function_test_cardinality_constraints_0.txt");
-        NonEquiJoinConstraintsReader nonEquiJoinConstraintsReader = new NonEquiJoinConstraintsReader();
-        List<NonEquiJoinConstraint> nonEquiJoinConstraints = nonEquiJoinConstraintsReader.read(".//test//input//function_test_non_equi_join_0.txt");
-//		ComputingThreadPool computingThreadPool = new ComputingThreadPool(1, 20, 0.00001);
-        ComputingThreadPool computingThreadPool = new ComputingThreadPool(4, 20, 0.00001);
-        QueryInstantiator queryInstantiator = new QueryInstantiator(tables, constraintChains, nonEquiJoinConstraints, 20, 0.00001, computingThreadPool);
+        List<ConstraintChain> constraintChains = constraintChainsReader.read("/Users/wangqingshuai/Github/Touchstone/runningexamples/input/tpch_cardinality_constraints_sf_1.txt");
+        ComputingThreadPool computingThreadPool = new ComputingThreadPool(2, 20, 0.00001);
+        QueryInstantiator queryInstantiator = new QueryInstantiator(tables, constraintChains, null, 20, 0.00001, computingThreadPool);
         queryInstantiator.iterate();
+        TouchStoneThreadPool.closeThreadPool();
+
+//        SchemaReader schemaReader = new SchemaReader();
+//        List<Table> tables = schemaReader.read(".//test//input//function_test_schema_0.txt");
+//        ConstraintChainsReader constraintChainsReader = new ConstraintChainsReader();
+//        List<ConstraintChain> constraintChains = constraintChainsReader.read(".//test//input//function_test_cardinality_constraints_0.txt");
+//        NonEquiJoinConstraintsReader nonEquiJoinConstraintsReader = new NonEquiJoinConstraintsReader();
+//        List<NonEquiJoinConstraint> nonEquiJoinConstraints = nonEquiJoinConstraintsReader.read(".//test//input//function_test_non_equi_join_0.txt");
+////		ComputingThreadPool computingThreadPool = new ComputingThreadPool(1, 20, 0.00001);
+//        ComputingThreadPool computingThreadPool = new ComputingThreadPool(4, 20, 0.00001);
+//        QueryInstantiator queryInstantiator = new QueryInstantiator(tables, constraintChains, nonEquiJoinConstraints, 20, 0.00001, computingThreadPool);
+//        queryInstantiator.iterate();
     }
 
     private void init() {
@@ -119,7 +120,7 @@ public class QueryInstantiator {
                     String attrName = filterOperation.getExpression();
                     String tmp = tableName + "." + attrName;
                     if (!attrEquaFilterOperMap.containsKey(tmp)) {
-                        attrEquaFilterOperMap.put(tmp, new ArrayList<FilterOperation>());
+                        attrEquaFilterOperMap.put(tmp, new ArrayList<>());
                     }
                     attrEquaFilterOperMap.get(tmp).add(filterOperation);
                 }
@@ -231,7 +232,7 @@ public class QueryInstantiator {
             probParaValueMap.clear();
 
             for (FilterOperation equaFilterOperation : equaFilterOperations) {
-                String dataType="";
+                String dataType = "";
                 try {
                     dataType = attribute.getDataType();
                 } catch (Exception e) {
@@ -276,9 +277,9 @@ public class QueryInstantiator {
                         if (dataType.equals("integer")) {
                             TSInteger dataTypeInfo = (TSInteger) attribute.getDataTypeInfo();
                             for (; j < size; j++) {
-                                Long paraValue = dataTypeInfo.adjustValueProbability(subProbability);
-                                probParaValueMap.put(subProbability, paraValue.toString());
-                                values.add(paraValue.toString());
+                                long paraValue = dataTypeInfo.adjustValueProbability(subProbability);
+                                probParaValueMap.put(subProbability, Long.toString(paraValue));
+                                values.add(Long.toString(paraValue));
                             }
                         } else if (dataType.equals("varchar")) {
                             TSVarchar dataTypeInfo = (TSVarchar) attribute.getDataTypeInfo();
@@ -307,11 +308,11 @@ public class QueryInstantiator {
         }
 
         // reconstitute the generative function of integer typed attributes
-        for (int i = 0; i < tables.size(); i++) {
-            List<Attribute> attributes = tables.get(i).getAttributes();
-            for (int j = 0; j < attributes.size(); j++) {
-                if (attributes.get(j).getDataType().equals("integer")) {
-                    ((TSInteger) attributes.get(j).getDataTypeInfo()).reconstituteGeneFunction();
+        for (Table table : tables) {
+            List<Attribute> attributes = table.getAttributes();
+            for (Attribute attribute : attributes) {
+                if (attribute.getDataType().equals("integer")) {
+                    ((TSInteger) attribute.getDataTypeInfo()).reconstituteGeneFunction();
                 }
             }
         }

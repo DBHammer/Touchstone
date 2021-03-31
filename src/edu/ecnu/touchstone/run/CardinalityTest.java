@@ -16,19 +16,19 @@ import java.util.regex.Pattern;
 public class CardinalityTest {
     public static final Pattern p = Pattern.compile("(#[\\d,]+#)");
 
-    public static Set<Integer> checkQueries = new HashSet<>(Arrays.asList(1, 2, 3, 4));
+   // public static Set<Integer> checkQueries = new HashSet<>();
 
     public static void main(String[] args) throws Exception {
-
         // TPC-H
         String parametersPath = args[0];
         String resultsPath = args[1];
-        int scaleFactor = Integer.parseInt(args[2]);
-        String ip = "10.11.6.121";
-        String port = "13306";
-        String dbName = "touchStoneTest";
-        String userName = "root";
-        String passwd = "root";
+        int scale = Integer.parseInt(args[2]);
+
+        String ip = args[3];
+        String port = args[4];
+        String dbName = args[5] + scale;
+        String userName = args[6];
+        String passwd = args[7];
 
 //		// SSB
 //		String parametersPath = ".//test//para-ssb.txt";
@@ -91,11 +91,10 @@ public class CardinalityTest {
                         queryErrorSum = 0;
                         queryOperatorsNum = 0;
                     }
-                    checkOrNot = checkQueries.contains(Integer.parseInt(inputLine.split("\\s+")[1].split(":")[0]));
-                    if (checkOrNot) {
-                        System.out.println(inputLine);
-                    }
-                } else if (inputLine.startsWith("SELECT") || inputLine.startsWith("(SELECT")) {
+                  // checkOrNot = checkQueries.contains(Integer.parseInt(inputLine.split("\\s+")[1].split(":")[0]));
+                    checkOrNot = true;
+                    System.out.println(inputLine);
+                } else if (inputLine.toUpperCase(Locale.ROOT).startsWith("SELECT") || inputLine.toUpperCase(Locale.ROOT).startsWith("(SELECT")) {
                     if (!checkOrNot) {
                         continue;
                     }
@@ -140,10 +139,10 @@ public class CardinalityTest {
                     }
                     if (inputLine.contains("###")) {
                         inputLine = inputLine.substring(0, inputLine.indexOf("###"));
-                        expectedCardinality = Double.parseDouble(inputLine) * scaleFactor;
+                        expectedCardinality = Double.parseDouble(inputLine);
                     } else {
                         expectedCardinality = Double.parseDouble(inputLine);
-                        expectedCardinality = expectedCardinality * scaleFactor;
+                        expectedCardinality = expectedCardinality * scale;
                     }
                     System.out.println("expected cardinality:" + expectedCardinality);
 

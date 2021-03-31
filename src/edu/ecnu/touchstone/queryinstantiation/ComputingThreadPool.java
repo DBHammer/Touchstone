@@ -53,14 +53,14 @@ public class ComputingThreadPool {
     public void waitFinished() {
         while (true) {
             boolean finished = true;
-            for (int i = 0; i < tasksList.size(); i++) {
-                if (tasksList.get(i).size() != 0) {
+            for (ArrayBlockingQueue<ComputingTask> computingTasks : tasksList) {
+                if (computingTasks.size() != 0) {
                     finished = false;
                     break;
                 }
             }
-            for (int i = 0; i < computingThreads.size(); i++) {
-                if (!computingThreads.get(i).isInactive()) {
+            for (ComputingThread computingThread : computingThreads) {
+                if (!computingThread.isInactive()) {
                     finished = false;
                 }
             }
@@ -134,8 +134,7 @@ class ComputingThread implements Runnable {
                     // non-equi join
                 } else {
                     List<Integer> children = task.getChildren();
-                    for (int i = 0; i < children.size(); i++) {
-                        int childId = children.get(i);
+                    for (int childId : children) {
                         if (parameterMap.containsKey(childId)) {
                             Parameter para = parameterMap.get(childId);
                             if (!para.isBet() || (para.getValues().size() == 2)) {

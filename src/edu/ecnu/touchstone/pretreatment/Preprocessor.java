@@ -138,8 +138,7 @@ public class Preprocessor {
                     }
                 }
                 try{
-                keys.add(new Key(s, 0,
-                        table.getKeyIndex().get(s.split("\\.")[1])));
+                keys.add(new Key(s, 0, table.getKeyIndex().get(s.split("\\.")[1])));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

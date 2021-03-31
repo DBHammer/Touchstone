@@ -13,7 +13,7 @@ public class DBStatisticsCollector {
 
     // target database (original database)
     private String ip = null;
-    private String port = null;
+    private int port;
     private String dbName = null;
     private String userName = null;
     private String passwd = null;
@@ -22,7 +22,7 @@ public class DBStatisticsCollector {
 
     private Logger logger = Logger.getLogger(DBStatisticsCollector.class);
 
-    public DBStatisticsCollector(String ip, String port, String dbName, String userName, String passwd,
+    public DBStatisticsCollector(String ip, int port, String dbName, String userName, String passwd,
                                  List<Table> tables) {
         super();
         this.ip = ip;
@@ -38,7 +38,8 @@ public class DBStatisticsCollector {
         SchemaReader schemaReader = new SchemaReader();
         List<Table> tables = schemaReader.read(".//test//input//ssb_schema_sf_1.txt");
 
-        String ip = "10.11.1.193", port = "13306", dbName = "ssb", userName = "root", passwd = "root";
+        String ip = "10.11.1.193",  dbName = "ssb", userName = "root", passwd = "root";
+        int port = 13306;
         DBStatisticsCollector collector = new DBStatisticsCollector(ip, port, dbName, userName, passwd, tables);
         collector.run();
     }

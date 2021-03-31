@@ -15,6 +15,18 @@ import java.util.*;
  * @author wangqingshuai
  */
 public class ComputeNullProbability {
+    public static void main(String[] args) throws JOptimizerException {
+        Map<Integer, Double> eachKeyNullProbability = new HashMap<>();
+        Map<Integer, Long> joinInfoSizes = new HashMap<>();
+        eachKeyNullProbability.put(1,0.5);
+        eachKeyNullProbability.put(4,0.667);
+        joinInfoSizes.put(5, 2L);
+        joinInfoSizes.put(6, 4L);
+        joinInfoSizes.put(9, 2L);
+        joinInfoSizes.put(10, 2L);
+        System.out.println(computeConstraintChainNullProbabilityForEveryStatus(eachKeyNullProbability,joinInfoSizes));
+
+    }
 
     public static List<Map<Integer, Double>> computeTableAndFileNullProbability(Map<Integer, Double> nullProbability,
                                                                                 Map<Integer, Long[]> mergedSizeInfo,
@@ -142,8 +154,8 @@ public class ComputeNullProbability {
                         a[j][i] = 0;
                     }
                     double computePercentage = a[j][i] / joinInfoSumSizes.get(keyNullProbability.getKey());
-                    pValue += computePercentage * computePercentage;
-                    qValue += keyNullProbability.getValue() * computePercentage * computePercentage;
+                    pValue += computePercentage;
+                    qValue += keyNullProbability.getValue() * computePercentage;
                 }
                 j++;
             }

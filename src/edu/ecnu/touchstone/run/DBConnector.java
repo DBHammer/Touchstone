@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 
 public class DBConnector {
 
-    public static Connection getDBConnection(String ip, String port, String dbName,
+    public static Connection getDBConnection(String ip, int port, String dbName,
                                              String userName, String passwd) {
         String driver = "com.mysql.jdbc.Driver";
         String url = "jdbc:mysql://" + ip + ":" + port + "/" + dbName;

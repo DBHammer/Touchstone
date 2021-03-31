@@ -10,15 +10,18 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @author wangqingshuai
+ */
 public class SQLProduction {
     public static final Pattern p = Pattern.compile("(#[\\d,]+#)");
 
     public static void main(String[] args) {
         String parametersPath = args[0];
         String sqlIndex = args[1];
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-        Map<Integer, String[]> parameterMap = new HashMap<Integer, String[]>();
+        Map<Integer, String[]> parameterMap = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(parametersPath)))) {
             String inputLine;
             while ((inputLine = br.readLine()) != null) {

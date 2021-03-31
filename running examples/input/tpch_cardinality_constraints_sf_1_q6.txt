@@ -36,3 +36,4 @@
 
 ## query 6
 [lineitem]; [0, l_shipdate@bet#l_discount@bet#l_quantity@<#and, 0.0190228]
+

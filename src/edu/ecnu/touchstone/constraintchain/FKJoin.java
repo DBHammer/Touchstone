@@ -8,98 +8,104 @@ import java.util.Arrays;
 // pk must have a table name prefix
 public class FKJoin implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	
-	private String[] foreignKeys = null;
-	private float probability;
-	private String[] primakryKeys = null;
-	private int canJoinNum;
-	private int cantJoinNum;
+    private static final long serialVersionUID = 1L;
 
-	// to avoid the string manipulation in data generation
-	private String fkStr = null;
-	private String rpkStr = null;
-	
-	// to solve the 'special situation'
-	private transient FKJoinAdjustment fkJoinAdjustment = null;
-	
-	// it's needed for generating 'fkJoinAdjustment' (its attribute 'probability')
-	private transient float accumulativeProbability;
-	
-	public FKJoin(String[] foreignKeys, float probability, String[] primakryKeys, int canJoinNum, int cantJoinNum) {
-		super();
-		this.foreignKeys = foreignKeys;
-		this.probability = probability;
-		this.primakryKeys = primakryKeys;
-		this.canJoinNum = canJoinNum;
-		this.cantJoinNum = cantJoinNum;
-		fkStr = Arrays.toString(this.foreignKeys);
-		rpkStr = Arrays.toString(this.primakryKeys);
-	}
-	
-	public FKJoin(FKJoin fkJoin) {
-		super();
-		this.foreignKeys = Arrays.copyOf(fkJoin.foreignKeys, fkJoin.foreignKeys.length);
-		this.probability = fkJoin.probability;
-		this.primakryKeys = Arrays.copyOf(fkJoin.primakryKeys, fkJoin.primakryKeys.length);
-		this.canJoinNum = fkJoin.canJoinNum;
-		this.cantJoinNum = fkJoin.cantJoinNum;
-		this.fkStr = fkJoin.fkStr;
-		this.rpkStr = fkJoin.rpkStr;
-	}
+    private String[] foreignKeys = null;
+    private float probability;
+    private String[] primakryKeys = null;
+    private int canJoinNum;
+    private int cantJoinNum;
 
-	public void setFkJoinAdjustment(FKJoinAdjustment fkJoinAdjustment) {
-		this.fkJoinAdjustment = fkJoinAdjustment;
-	}
-	
-	public void setAccumulativeProbability(float accumulativeProbability) {
-		this.accumulativeProbability = accumulativeProbability;
-	}
+    // to avoid the string manipulation in data generation
+    private String fkStr = null;
+    private String rpkStr = null;
 
-	public String[] getForeignKeys() {
-		return foreignKeys;
-	}
+    // to solve the 'special situation'
+    private transient FKJoinAdjustment fkJoinAdjustment = null;
 
-	public float getProbability() {
-		return probability;
-	}
+    // it's needed for generating 'fkJoinAdjustment' (its attribute 'probability')
+    private transient float accumulativeProbability;
 
-	public String[] getPrimakryKeys() {
-		return primakryKeys;
-	}
+    // whether the node is the right join node or not
+    private boolean rightOuterJoin;
 
-	public int getCanJoinNum() {
-		return canJoinNum;
-	}
+    public FKJoin(String[] foreignKeys, float probability, String[] primakryKeys,
+                  int canJoinNum, int cantJoinNum, boolean rightOuterJoin) {
+        super();
+        this.foreignKeys = foreignKeys;
+        this.probability = probability;
+        this.primakryKeys = primakryKeys;
+        this.canJoinNum = canJoinNum;
+        this.cantJoinNum = cantJoinNum;
+        this.rightOuterJoin = rightOuterJoin;
+        fkStr = Arrays.toString(this.foreignKeys);
+        rpkStr = Arrays.toString(this.primakryKeys);
+    }
 
-	public int getCantJoinNum() {
-		return cantJoinNum;
-	}
+    public FKJoin(FKJoin fkJoin) {
+        super();
+        this.foreignKeys = Arrays.copyOf(fkJoin.foreignKeys, fkJoin.foreignKeys.length);
+        this.probability = fkJoin.probability;
+        this.primakryKeys = Arrays.copyOf(fkJoin.primakryKeys, fkJoin.primakryKeys.length);
+        this.canJoinNum = fkJoin.canJoinNum;
+        this.cantJoinNum = fkJoin.cantJoinNum;
+        this.fkStr = fkJoin.fkStr;
+        this.rpkStr = fkJoin.rpkStr;
+        this.rightOuterJoin = fkJoin.rightOuterJoin;
+    }
 
-	public String getFkStr() {
-		return fkStr;
-	}
+    public String[] getForeignKeys() {
+        return foreignKeys;
+    }
 
-	public String getRpkStr() {
-		return rpkStr;
-	}
+    public float getProbability() {
+        return probability;
+    }
 
-	public FKJoinAdjustment getFkJoinAdjustment() {
-		return fkJoinAdjustment;
-	}
-	
-	public float getAccumulativeProbability() {
-		return accumulativeProbability;
-	}
+    public String[] getPrimakryKeys() {
+        return primakryKeys;
+    }
 
-	public boolean canJoin() {
-		return fkJoinAdjustment.canJoin();
-	}
+    public int getCanJoinNum() {
+        return canJoinNum;
+    }
 
-	@Override
-	public String toString() {
-		return "\n\tFKJoin [foreignKeys=" + Arrays.toString(foreignKeys) + ", probability=" + probability 
-				+ ", primakryKeys=" + Arrays.toString(primakryKeys) + ", canJoinNum=" + canJoinNum 
-				+ ", cantJoinNum=" + cantJoinNum + ", fkStr=" + fkStr + ", rpkStr=" + rpkStr  + "]";
-	}
+    public int getCantJoinNum() {
+        return cantJoinNum;
+    }
+
+    public String getFkStr() {
+        return fkStr;
+    }
+
+    public String getRpkStr() {
+        return rpkStr;
+    }
+
+    public FKJoinAdjustment getFkJoinAdjustment() {
+        return fkJoinAdjustment;
+    }
+
+    public void setFkJoinAdjustment(FKJoinAdjustment fkJoinAdjustment) {
+        this.fkJoinAdjustment = fkJoinAdjustment;
+    }
+
+    public float getAccumulativeProbability() {
+        return accumulativeProbability;
+    }
+
+    public void setAccumulativeProbability(float accumulativeProbability) {
+        this.accumulativeProbability = accumulativeProbability;
+    }
+
+    public boolean canJoin() {
+        return fkJoinAdjustment.canJoin();
+    }
+
+    @Override
+    public String toString() {
+        return "\n\tFKJoin [foreignKeys=" + Arrays.toString(foreignKeys) + ", probability=" + probability
+                + ", primakryKeys=" + Arrays.toString(primakryKeys) + ", canJoinNum=" + canJoinNum
+                + ", cantJoinNum=" + cantJoinNum + ", fkStr=" + fkStr + ", rpkStr=" + rpkStr + "]";
+    }
 }

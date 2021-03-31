@@ -4,33 +4,33 @@ import java.util.Arrays;
 
 // The adjust-rule for 'FKJoinAdjustment'
 public class FKJoinAdjustRule implements Comparable<FKJoinAdjustRule> {
-	
-	private boolean[] cause = null;
-	private boolean effect;
 
-	// the input parameter 'joinStatuses' is a non-existent combined join statuses
-	public FKJoinAdjustRule(boolean[] joinStatuses) {
-		super();
-		cause = Arrays.copyOf(joinStatuses, joinStatuses.length - 1);
-		effect = !joinStatuses[joinStatuses.length - 1];
-	}
-	
-	public boolean[] getCause() {
-		return cause;
-	}
+    private boolean[] cause = null;
+    private boolean effect;
 
-	public boolean getEffect() {
-		return effect;
-	}
+    // the input parameter 'joinStatuses' is a non-existent combined join statuses
+    public FKJoinAdjustRule(boolean[] joinStatuses) {
+        super();
+        cause = Arrays.copyOf(joinStatuses, joinStatuses.length - 1);
+        effect = !joinStatuses[joinStatuses.length - 1];
+    }
 
-	@Override
-	public String toString() {
-		return "FKJoinAdjustRule [cause=" + Arrays.toString(cause) + ", effect=" + effect + "]";
-	}
+    public boolean[] getCause() {
+        return cause;
+    }
 
-	// support for removing invalid rules (there may exist two rules where they have same cases and different effects)
-	@Override
-	public int compareTo(FKJoinAdjustRule other) {
-		return Arrays.toString(other.cause).compareTo(Arrays.toString(this.cause));
-	}
+    public boolean getEffect() {
+        return effect;
+    }
+
+    @Override
+    public String toString() {
+        return "FKJoinAdjustRule [cause=" + Arrays.toString(cause) + ", effect=" + effect + "]";
+    }
+
+    // support for removing invalid rules (there may exist two rules where they have same cases and different effects)
+    @Override
+    public int compareTo(FKJoinAdjustRule other) {
+        return Arrays.toString(other.cause).compareTo(Arrays.toString(this.cause));
+    }
 }

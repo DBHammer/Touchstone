@@ -1,0 +1,15 @@
+## Query1
+[part];[1,part,1#0.01809,2]
+[product];[2,pr_partid,1,part.p_partid,1,2]
+
+## Query2
+[part];[0,type@=,0.00996];[1,part,4,8]
+[product];[3,pr_partid,0.0099675,part.p_partid,4,8]
+
+## Query3
+[part];[0,supplier@=,0.00988];[1,part,16#0.64423,32]
+[product];[0,totalsold@>,0.099875];[3,pr_partid,0.01062578,part.p_partid,16,32]
+
+## Query4
+[part];[0,stock@<,0.20015];[1,part,64,128]
+[product];[2,pr_partid,0.19974875,part.p_partid,64,128]

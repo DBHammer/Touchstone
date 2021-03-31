@@ -1,84 +1,376 @@
-<font size=5><div align="right"><a href="https://github.com/daseECNU/Touchstone/blob/master/running%20examples/README-en.md">English Version</a></div>
-</font>
+#  Touchstone—Github版本使用说明
 
-### 运行示例
+> **编撰人：王清帅，李宇明**
+>
+> **单位：华东师范大学 数据科学与工程学院**
 
-**将该文件夹"running examples"拷贝到你的机器（任意目录），可通过执行如下命令直接运行Touchstone。**
+在Github仓库的[running examples](https://github.com/daseECNU/Touchstone/tree/master/running%20examples)中，我们提供了可直接运行的jar打包程序，运行环境为：**Linux & Java 1.8+** ，本篇文档将对程序的使用做出详细说明。
 
-**运行命令：java -jar Touchstone.jar XXX.conf**
+## Overview
 
-**非常简单！**
+### Overview of the program file
 
+In the running examples folder, there are 3 executable files, namely Touchstone.jar, RunController.jar and RunController.jar. Among them, Touchstone.jar is responsible for automating the deployment of the operating environment in the cluster and starting the generation task, and RunController.jar and RunDataGenenrator.jar are responsible for executing the data generation task in the cluster. The summary description is as follows:
 
-### 配置文件说明
+1. Touchstone.jar is responsible for deploying and launching the program. When the program is running, the execution file and configuration file will be copied to the running node of the cluster according to the configuration content. After the copy is completed, the program on the corresponding node will be started to execute the generation task.
+2. RunController.jar is automatically started by Touchstone.jar after deployment. Only one node runs the program. It is the management node of the cluster. It is responsible for managing the load generation tasks in each RunDataGenenrator.jar. It communicates through the netty network framework (sending data generation tasks and Join Information Table).
+3. RunDataGenenrator.jar, which is automatically started by Touchstone.jar after deployment, can run on multiple cluster nodes and execute data generation tasks in a distributed and parallel manner. Runtime information is distributed by the RunController.jar program file in the cluster.
 
-在配置文件（执行命令中的"XXX.conf"）中，用户需要对部署Touchstone的集群信息、Touchstone的controller、Touchstone的data generators、待生成数据库的schema、目标测试Query上的基数约束（即负载特征）、以及一些算法参数等信息进行配置。下面通过一个示例配置文件进行说明。
+### Overview of the configuration file
 
-#### 示例配置文件：
+Before starting the cluster, you need to write the cluster environment configuration file and the load generation task configuration file.
++ The sample cluster configuration file is touchstone.conf, which configures the nodes required for cluster operation, the degree of concurrency, and the running path.
++ The load generation task configuration file contains two configuration files:
+   + Table information (the sample is tpch_schema_sf_1), which describes the basic data format that the table data to be generated needs to meet, including the basic distribution of Schema information and table data.
+   + Load statement information (the sample is tpch_cardinality_constraints_sf_1.txt), which describes the structure of the SQL statement to be tested, the filtering ratio of each intermediate result set and other characteristics.
+   
 
-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+In the following two chapters, cluster environment configuration file and load generation task configuration file, we have made specific descriptions of related configuration parameters. After explaining the configuration file format, we give configuration examples of TPC-H and SSB for reference.
 
-\#\# configurations of servers
+### Operation mode
 
-IPs of servers: 10.11.1.190; 10.11.1.191; 10.11.1.192  
-password of root user: w@ngl5i  
-user names of servers: touchstone; touchstone; touchstone  
-passwords of servers: 123456; 123456; 123456  
+The startup program of Touchstone is Touchstone.jar. After writing the configuration file, use the following command to start the program:
 
-\#\# 上面是对部署Touchstone的集群信息进行了配置（目前仅支持Linux系统 & Java 8+）。这里配置了三个节点，IP分别是10.11.1.190，10.11.1.191，10.11.1.192。所有节点的root密码是w@ngl5i（为了清空操作系统缓存），目前程序在运行前一般默认会清空所有节点的操作系统缓存，确保程序在运行过程中不会因为内存不足而出现JVM GC（若拿不到root密码，这里可不配置）。Touchstone对内存要求并不高，实际占用内存一般不超过5GB。注意：运行命令"java -jar Touchstone.jar XXX.conf"可在Windows或Linux系统中运行，但所在节点必须与上面配置的部署节点网络连通。
+```shell
+java -jar Touchstone.jar XXX.conf
+```
+After startup, Touchstone.jar will allocate the required files to the corresponding nodes in the cluster and start the cluster generation task. After the cluster generation task is started, the controller will calculate the parameter filling information of the Query. After the calculation is completed, the information will be distributed to the DataGenerator nodes in the cluster for data generation until the end of the generation task.
 
-\#\# configurations of controller
+### Operation result
 
-IP of controller: 10.11.1.190  
-port of controller: 32100  
-running directory of controller: ~//icde_test  
-
-\#\# 上面配置了Touchstone controller的部署节点（程序自动部署），controller的端口号为32100，controller与data generators利用netty网络框架进行通信（发送数据生成任务和Join Information Table）。
-
-\#\# input files
-
-database schema: .//input//tpch_schema_sf_1.txt  
-cardinality constraints: .//input//tpch_cardinality_constraints_sf_1.txt  
-
-\#\# 上面配置了待生成数据库的schema和目标测试Query上的基数约束，具体形式请参照input文件夹中的示例文件，在input文件夹中我们也给出了输入数据格式的详细介绍。
-
-\#\# configuration of log4j
-
-path of log4j.properties: .//lib//log4j.properties  
-
-\#\# configuration of Mathematica
-
-path of JLink: C://Program Files//Wolfram Research//Mathematica//10.0//SystemFiles//Links//JLink  
-
-\#\# 针对复杂的过滤谓词以及非等值连接谓词，Touchstone需要利用Mathematica提供的数值积分运算功能（对应论文中的random sampling算法），但是如果输入负载中仅包含简单的过滤谓词（如col > para）和等值连接谓词，这里无需配置。
-
-\#\# configurations of data generators
-
-IPs of data generators: 10.11.1.191; 10.11.1.191; 10.11.1.191; 10.11.1.192; 10.11.1.192; 10.11.1.192  
-ports of data generators: 32101; 32102; 32103; 32101; 32102; 32103  
-thread numbers of data generators: 2; 2; 2; 2; 2; 2  
-running directories of data generators: ~//icde_test//dg1; ~//icde_test//dg2; ~//icde_test//dg3; ~//icde_test//dg1; ~//icde_test//dg2; ~//icde_test//dg3  
-data output path: .//data  
-
-\#\# 上面配置了部署Touchstone data generators的节点信息（程序自动部署）。由于一个JVM中启动多个数据生成线程的性能往往没有多个JVM中启动相同数量数据生成线程的性能好，所以建议在一个节点上根据CPU物理核数启动多个JVM。上面的示例配置在每个物理节点上启动了3个JVM，每个JVM中启动了2个数据生成线程。所有运行目录会自动创建，无需人工创建。
-
-\#\# running parameters
-
-thread numbers of query instantiation: 2  
-maximum iterations of query instantiation: 20  
-global relative error of query instantiation: 0.0001  
-maximum iterations of parameter instantiation: 20  
-relative error of parameter instantiation: 0.0001  
-maximum number of shuffle: 1000  
-maximum size of PKVs: 10000  
-
-\#\# 上面配置了Touchstone运行过程中所需的一些参数，详细含义可查看论文。
-
-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
++ **Instantiated query parameters**: Generated in the log of the Touchstone controller, search for "Final instantiated parameters" in the log file to locate, and the order of the parameters is the same as the order of the symbolic parameters in the input cardinality constraint.
++ **The generated data file**: Generated in the path configured by the data generator.
 
 
-### 其他注意事项
 
-（1）不要对running examples文件夹下的input & lib文件夹进行重命名！当前打包的jar中这两个文件夹名称是写死的，你要是真想改，请稍微改动下我们的源码并重新打包。    
+## Cluster environment configuration file
 
-（2）实例化的查询参数都写在了Touchstone controller的日志中，你可在日志文件中搜索"Final instantiated parameters"进行定位，这里的参数顺序与输入基数约束中的符号参数顺序相同。
+**Attention: ** All cluster configuration files need to be written in one file, such as touchstone.conf in the running examples folder.
+
+1. Configuration file of Touchstone.jar
+
+   Since the program file needs to be copied to the cluster and the cluster task needs to be started, the IP, user name and password of the cluster nodes need to be configured. The configuration items are IPs of servers, user names of servers and passwords of servers, each node The order of the configuration needs to be consistent. When the program is running, the operating system cache of all nodes will be cleared by default to ensure that JVM GC will not occur due to insufficient memory during the program. If there is no shortage of memory, the root password can be omitted. The sample configuration file is as follows:
+
+   ```yaml
+   ## configurations of servers
+   
+   IPs of servers: 10.11.1.190; 10.11.1.191; 10.11.1.192
+   password of root user: w@ngl5i
+   user names of servers: touchstone; touchstone; touchstone
+   passwords of servers: 123456; 123456; 123456
+   ```
+
+2. Configuration file of RunController.jar
+
+   For the program file, you need to configure the ip used as the controller node in the cluster, the file path of the node (TouchStone.jar will copy the relevant files to the file path), and the port number of the node that sends information to the outside world. For example, the following configuration items, configure the controller's running node as 10.11.1.190, port number as 32100, and execution file path as ~//icde_test
+
+   ```yaml
+   ## configurations of controller
+   
+   IP of controller: 10.11.1.190
+   port of controller: 32100
+   running directory of controller: ~//icde_test
+   ```
+
+   When the controller is running, it is necessary to load the configuration files of the data generation task, including the table information of the database to be generated and the load characteristics (cardinality constraints in the constraint chain). The specific forms of these two configuration files will be described in detail below to configure the controller The configuration file input items are as follows:
+
+   ```yaml
+   ## input files
+   
+   database schema: .//input//tpch_schema_sf_1.txt
+   cardinality constraints: .//input//tpch_cardinality_constraints_sf_1.txt
+   ```
+
+   For complex filter predicates and non-equivalent join predicates, Touchstone needs to use the numerical integration function provided by Mathematica (corresponding to the random sampling algorithm in the paper), but if the input load contains only simple filter predicates (such as col> para) and Equivalent connection predicates, no configuration is required, the way to configure Mathematica is:
+
+   ```yaml
+   ## configuration of Mathematica
+   
+   path of JLink: C://Mathematica//10.0//SystemFiles//Links//JLink
+   ```
+
+   The runtime logging method uses the log4j framework, which can load custom configuration files. The configuration items are:
+
+   ```yaml
+   ## configuration of log4j
+   
+   path of log4j.properties: .//lib//log4j.properties
+   ```
+
+3. RunDataGenerator.jar
+
+   The program file needs to be configured with five parameters:
+   1. the ip of the node used as data generator in the cluster
+   2. the path to the file where the program will run
+   3. the port number to interact with the controller
+   4. the number of threads currently used by the program for data generation
+   5. the folder for data output
+
+   A set of configuration examples are given below. The data generator program is configured on two machines, 191 and 192. Each machine runs 3 instances, and each instance runs 2 generation threads. The port number on each machine is 32101. ; 32102; 32103, the output folder is .//data.
+
+   ```yaml
+   ## configurations of data generators
+   
+   IPs of data generators: 10.11.1.191; 10.11.1.191; 10.11.1.191; 10.11.1.192; 10.11.1.192; 10.11.1.192
+   running directories of data generators: ~//icde_test//dg1; ~//icde_test//dg2; ~//icde_test//dg3; ~//icde_test//dg1; ~//icde_test//dg2; ~//icde_test//dg3
+   ports of data generators: 32101; 32102; 32103; 32101; 32102; 32103
+   thread numbers of data generators: 2; 2; 2; 2; 2; 2
+   data output path: .//data
+   ```
+
+   Since the performance of starting multiple data generation threads in one JVM is often not as good as starting the same number of data generation threads in multiple JVMs, it is recommended to start multiple JVMs on a node according to the number of physical CPU cores. The above example configuration starts 3 JVMs on each physical node, and 2 data generation threads are started in each JVM. All operating directories will be created automatically, without manual creation.
+
+4. Some parameters required during the operation of Touchstone
+
+   This part of the parameters generally does not need to be changed, and the default values can be used directly. For details, please refer to the paper.
+
+   ```yaml
+   ## running parameters
+   
+   # The controller is calculating the control parameters of query instantiation
+   thread numbers of query instantiation: 2  #Number of threads used for calculation
+   maximum iterations of query instantiation: 20 #Number of iterations
+   global relative error of query instantiation: 0.0001 #Global approximation error
+   maximum iterations of parameter instantiation: 20 #Maximum number of iterations of the parameter
+   relative error of parameter instantiation: 0.0001 #Approximation error of a single parameter
+   
+   
+   # The maximum number of shuffles used to calculate the constraint rules, see Algorithm 3 in the technical report
+   maximum number of shuffle: 1000 
+   
+   #The maximum number of primary keys for each status in Jointable, that is, L in the compression algorithm
+   maximum size of PKVs: 10000 
+   ```
+
+
+
+## Task profile for workload generation
+
+Touchstone has two input data files, which respectively contain database schema information (including data feature information) and cardinality constraint information.
+
+
+### Table information of the database
+
+1. Schema information
+
+   ```yaml
+   ## Input format
+   
+   T[table_name; table_size; column_name, data_type; ...; P(primary_key); F(foreign_key, referenced_table.referenced_primary_key); ...]  
+   
+   ## Input sample, take TPC-H table PARTSUPP as an example
+   
+   T[PARTSUPP; 8000000; PS_PARTKEY, INTEGER; PS_SUPPKEY, INTEGER; PS_AVAILQTY, INTEGER; PS_SUPPLYCOST, DECIMAL; PS_COMMENT, VARCHAR; P(PS_PARTKEY, PS_SUPPKEY); F(PS_PARTKEY, PART.P_PARTKEY); F(PS_SUPPKEY, SUPPLIER.S_SUPPKEY)]
+   ```
+
+2. Basic data characteristics
+
+   ```yaml
+   # Integer:
+   D[table_name.column_name; null_ratio; cardinality; min_value; max_value]  
+   # Example:
+   D[T1.c1; 0.05; 100; 1; 9999]
+   
+   # Real & Decimal:
+   D[table_name.column_name; null_ratio; min_value; max_value]  
+   # Example: 
+   D[T1.c2; 0; 0.1; 1000.5]
+   
+   # Varchar: 
+   D[table_name.column_name; null_ratio; avg_length; max_length]  
+   # Example:  
+   D[T1.c3; 0; 123.5; 199]
+   
+   # Bool:  
+   D[table_name.column_name; null_ratio; true_ratio]  
+   # Example: 
+   D[T1.c4; 0.2; 0.6]
+   
+   # DateTime:  
+   D[table_name.column_name; null_ratio; begin_time; end_time]  
+   # Example:  
+   D[T1.c5; 0; 1992-01-02-00:00:00; 1998-12-01-00:00:00]
+   
+   # Date:  
+   D[table_name.column_name; null_ratio; begin_time; end_time]  
+   # Example:  
+   D[T1.c6; 0; 1992-01-02; 1998-12-01]
+   ```
+
+### Workload characteristics (cardinality constraints in the constraint chain)
+
+**There are three types of cardinal constraints in the constraint chain, and the basic data structure is as follows:**  
+
+1. Filter node:
+
+   ```yaml
+   Filter node: [0, exp1@op1#exp2@op2 ... #and|or, probability]
+   ```
+
+   **Description:**
+   
+   + "0" indicates that this is a selection node;
+   + "exp1@op1#exp2@op2 ... #and|or" describes all selection conditions in the current selection operation;
+   + "probability" is the filtering rate.
+
+2. Primary key node (the attribute of the current data table in the equivalent join operation is the primary key attribute)
+   ```yaml
+   PKJoin node: [1, pk1#pk2 ..., num1, num2, ...] 
+   ```
+   **Description:**
+   
+   + "1" indicates that this is a primary key node;
+   + "pk1#pk2..." is the primary key (if the primary key is a composite primary key, this is a property collection);
++ "num1" & "num2" are the codes when maintaining primary key connection information.
+   
+3. Foreign key node (the attribute of the current data table in the equivalent join operation is a foreign key attribute)
+   ```yaml
+   FKJoin node: [2, fk1#fk2 ..., probability, pk1#pk2 ..., num1, num2]
+   ```
+   **Description:**
+   
+   + "2" indicates that this is a foreign key node;
+   + "fk1#fk2..." is a collection of foreign key attributes;
+   + "probability" is the joining rate;
+   + "pk1#pk2..." is the primary key of the reference (if the reference is a composite primary key, this is a property set);
+   + "num1" & "num2" are the codes of the corresponding primary key connection information.
+
+The following will introduce the specific format of the input data based on some sample Query input of TPC-H.
+
+1. Physical query tree of TPC-H's Query 1 on MySQL
+   
+   <img src="http://ww3.sinaimg.cn/large/006tNc79ly1g3zap9kpbzj30d408naal.jpg" width="240" height="155" />
+
+The corresponding constraint chain is:
+
+```
+[lineitem]; [0, l_shipdate@<=, 0.985899]
+```
+
+**Description：**
+
++ A constraint chain is for a specific data table, where [lineitem] indicates that the constraint chain is for the data table lineitem.
++ [0, l\_shipdate@<=, 0.985899]
+  + "0" indicates that this is a Filter constraint node;
+  + "l\_shipdate@<="Used to describe the filtering predicate"l\_shipdate <= p1"；
+  + "0.985899" is the selection rate (=5916591/6001215).
+
+2. Physical query tree of TPC-H's Query 3 on MySQL
+
+   ![TPC-H_Query-3](http://ww2.sinaimg.cn/large/006tNc79ly1g3zaqvbz1pj30d40cv0t3.jpg)
+
+The corresponding constraint chain is:
+
+```
+[customer]; [0, c_mktsegment@=, 0.20095]; [1, c_custkey, 1, 2] 
+[orders]; [2, o_custkey, 0.20264, customer.c_custkey, 1, 2]; [0, o_orderdate@<, 0.48403]; [1, o_orderkey, 1, 2] 
+[lineitem]; [2, l_orderkey, 0.09806464, orders.o_orderkey, 1, 2]; [0, l_shipdate@>, 0.05185835]
+```
+
+**Description：**
+
+Since Query 3 involves three data tables, there are three constraint chains.
+
+"[1, c\_custkey, 1, 2]"in the first constraint chain, the first "1" indicates that this is a PK constraint node (the attribute of the customer table in this equivalent join operation is the primary key attribute ), the following "1, 2" is the code used to maintain the primary key connection information.
+
+"[2, o\_custkey, 0.20264, customer.c\_custkey, 1, 2] "in the second constraint chain, the first "2" indicates that this is an FK constraint node (the orders table is equivalent in this The attributes in the join operation are foreign key attributes). "o\_custkey" is the foreign key attribute name, "0.20264" is the connection rate (=303959/1500000), "customer.c\_custkey" is the reference primary key, and "1, 2" is the connection operation phase of the FK constraint node The code in the corresponding PK constraint node (ie "[1, c\_custkey, 1, 2]").
+
+The probability in all cardinality constraints is either the selection rate or the connection rate, which is calculated based on the size of the intermediate result set in the actual query tree.
+
+>  **Explanation on encoding:**
+>
+> When a tuple in the customer table satisfies the "c\_mktsegment = p7" selection operation, then the primary key c\_custkey of this tuple may be connected to the next orders table. For such c\_custkey, we will label it "1"; For those c\_custkey that does not meet the "c\_mktsegment = p7" selection operation, label "2" to indicate that they must not be connected to the following orders table. The codes are all 2^n, which are currently guaranteed by input. In fact, these codes can be automatically generated by the program without manual input, and additional tools will be provided later.
+>
+> **Why is the code 2^n？**
+>
+> Because it is necessary to use the sum of the codes of the primary key of the current tuple in all constraint chains to represent its connection state (equivalent to n bits, each two bits correspond to a connection operation, and only one of these two bits can be 1 To indicate whether this primary key can be connected)!
+
+## How to convert the SQL statement into the input of the constraint chain configuration file
+
+In this section, we will take Query3 of TPC-H as an example to explain in detail how to convert Query into a constraint chain from an existing data set.
+
++ First, use the tool to generate the TPC-H sample library with SF=1 on MySQL, and then initialize the Query3 statement as:
+
+  ```mysql
+  select
+          l_orderkey,
+          sum(l_extendedprice * (1 - l_discount)) as revenue,
+          o_orderdate,
+          o_shippriority
+  from
+          customer,
+          orders,
+          lineitem
+  where
+          c_mktsegment = 'BUILDING'
+          and c_custkey = o_custkey
+          and l_orderkey = o_orderkey
+          and o_orderdate < date '1995-03-15'
+          and l_shipdate > date '1995-03-15'
+  group by
+          l_orderkey,
+          o_orderdate,
+          o_shippriority
+  order by
+          revenue desc,
+          o_orderdate;
+  limit 10;
+  ```
+
++ Use explain+query to display the MySQL query plan, you can see that the Join order is cutomer->orders->lineitem.
+
+  | id | select_type | table    | partitions | type | possible_keys      | key        | key_len | ref                     | rows   | filtered | Extra|
+  | ---- | ------ | -------- | ---- | ---- | ------- | ---- | ---- | ---- | ---- | ---- | ---- |
+  |  1 | SIMPLE      | customer | NULL       | ALL  | PRIMARY            | NULL       | NULL    | NULL                    | 147408 |    10.00 | Using where; Using temporary; Using filesort |
+  |  1 | SIMPLE      | orders   | NULL       | ref  | PRIMARY,ORDERS_FK1 | ORDERS_FK1 | 4       | tpch.customer.C_CUSTKEY |     15 |    33.33 | Using where       |
+  |  1 | SIMPLE      | lineitem | NULL       | ref  | PRIMARY            | PRIMARY    | 4       | tpch.orders.O_ORDERKEY  |      4 |    33.33 | Using where                                  |
+
++ Use the order of the query plan to execute the sub-statements step by step to know the size of the data set at each step
+
+  ```mysql
+  select count(*) from customer;#150000
+  
+  select count(*) from customer where c_mktsegment = 'BUILDING';#30142
+  
+  select count(*) from orders;#1500000
+  
+  select count(*) from customer,orders 
+  where c_mktsegment = 'BUILDING' and c_custkey = o_custkey;#303959
+  
+  select count(*) from customer,orders 
+  where c_mktsegment = 'BUILDING' and c_custkey = o_custkey
+  and ;o_orderdate < date '1995-03-15'#147126
+  
+  select count(*) from lineitem;#6001215
+  
+  select count(*) from customer, orders, lineitem
+  where c_mktsegment = 'BUILDING' and c_custkey = o_custkey
+  and l_orderkey = o_orderkey and o_orderdate < date '1995-03-15'#588507
+  
+  select count(*) from customer, orders, lineitem
+  where c_mktsegment = 'BUILDING' and c_custkey = o_custkey
+  and l_orderkey = o_orderkey and o_orderdate < date '1995-03-15'
+  and l_shipdate > date '1995-03-15'#30519
+  ```
+
++ Combined with the size of the data set, the query plan can be found in the following query tree, and the configuration file of the constraint chain can be generated through the query tree.
+
+![TPC-H_Query-3](http://ww2.sinaimg.cn/large/006tNc79ly1g3zaqvbz1pj30d40cv0t3.jpg)
+
+## Standard sample of cluster configuration file
+
+Please see the standard configuration file of the system running program: touchstone.conf
+
++ TPC-H standard configuration file when sf=1:
+
+  Schema configuration file: tpch_schema_sf_1
+
+  Constraint configuration file for the first 16 statements: tpch_cardinality_constraints_sf_1.txt
+
+  Example diagram of constraint configuration for the first 16 sentences: TPC-H Query1-16 SF=1.png
+
++ ssb standard configuration file when sf=1:
+
+  Schema configuration file: ssb_schema_sf_1
+
+  Constraint configuration file: ssb_cardinality_constraints_Q1-Q4.txt

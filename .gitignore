@@ -61,6 +61,7 @@ bin/
 data/
 joinTable/
 touchstone.iml
-!lib/*
 outerJoin/
+target
 log/
+!src/main/resources/JLink.jar

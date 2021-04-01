@@ -10,7 +10,7 @@
 
   <name>Touchstone</name>
   <!-- FIXME change it to the project's website -->
-  <url>http://www.example.com</url>
+  <url>https://github.com/dbhammer/Touchstone</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -65,7 +65,7 @@
       <artifactId>jlink</artifactId>
       <version>1.0</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/src/main/resources/JLink.jar</systemPath>
+      <systemPath>${basedir}/src/main/resources/JLink.jar</systemPath>
     </dependency>
 
 
@@ -90,7 +90,7 @@
                   <mainClass>edu.ecnu.touchstone.run.RunController</mainClass>
                 </transformer>
               </transformers>
-              <outputFile>target/${project.artifactId}-${project.version}-RunController.jar</outputFile>
+              <outputFile>target/RunController.jar</outputFile>
             </configuration>
           </execution>
           <execution>
@@ -105,7 +105,7 @@
                   <mainClass>edu.ecnu.touchstone.run.RunDataGenerator</mainClass>
                 </transformer>
               </transformers>
-              <outputFile>target/${project.artifactId}-${project.version}-RunDataGenerator.jar</outputFile>
+              <outputFile>target/RunDataGenerator.jar</outputFile>
             </configuration>
           </execution>
         </executions>

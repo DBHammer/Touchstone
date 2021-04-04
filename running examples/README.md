@@ -1,34 +1,26 @@
-## Overview
+# Overview
 
-### Overview of the program file
+## Overview of the program file
 
-In the running examples folder, there are 3 executable files, namely Touchstone.jar, RunController.jar and RunController.jar. Among them, Touchstone.jar is responsible for automating the deployment of the operating environment in the cluster and starting the generation task, and RunController.jar and RunDataGenenrator.jar are responsible for executing the data generation task in the cluster. The summary description is as follows:
+In the running examples folder, there are 2 executable files, namely `RunController.jar` and `RunController.jar`. They are responsible for executing the data generation task in the cluster. You cam complie them by `mvn package` The summary description is as follows:
 
-1. Touchstone.jar is responsible for deploying and launching the program. When the program is running, the execution file and configuration file will be copied to the running node of the cluster according to the configuration content. After the copy is completed, the program on the corresponding node will be started to execute the generation task.
-2. RunController.jar is automatically started by Touchstone.jar after deployment. Only one node runs the program. It is the management node of the cluster. It is responsible for managing the load generation tasks in each RunDataGenenrator.jar. It communicates through the netty network framework (sending data generation tasks and Join Information Table).
-3. RunDataGenenrator.jar, which is automatically started by Touchstone.jar after deployment, can run on multiple cluster nodes and execute data generation tasks in a distributed and parallel manner. Runtime information is distributed by the RunController.jar program file in the cluster.
+1. RunController.jar is automatically started by Touchstone.jar after deployment. Only one node runs the program. It is the management node of the cluster. It is responsible for managing the load generation tasks in each RunDataGenenrator.jar. It communicates through the netty network framework (sending data generation tasks and Join Information Table).
+2. RunDataGenenrator.jar, which is automatically started by Touchstone.jar after deployment, can run on multiple cluster nodes and execute data generation tasks in a distributed and parallel manner. Runtime information is distributed by the RunController.jar program file in the cluster.
 
-### Overview of the configuration file
+## Overview of the configuration file
 
 Before starting the cluster, you need to write the cluster environment configuration file and the load generation task configuration file.
-+ The sample cluster configuration file is touchstone.conf, which configures the nodes required for cluster operation, the degree of concurrency, and the running path.
+
++ The sample cluster configuration file is [touchstone.conf](touchstone.conf), which configures the nodes required for cluster operation, the degree of concurrency, and the running path.
 + The load generation task configuration file contains two configuration files:
-   + Table information (the sample is tpch_schema_sf_1), which describes the basic data format that the table data to be generated needs to meet, including the basic distribution of Schema information and table data.
-   + Load statement information (the sample is tpch_cardinality_constraints_sf_1.txt), which describes the structure of the SQL statement to be tested, the filtering ratio of each intermediate result set and other characteristics.
+  
+   1. Table information (the sample is [tpch_schema_sf_1](input/tpch_schema_sf_1.txt)), which describes the basic data format that the table data to be generated needs to meet, including the basic distribution of Schema information and table data.
+   2. Load statement information (the sample is [tpch_cardinality_constraints_sf_1.txt](input/tpch_cardinality_constraints_sf_1.txt)), which describes the structure of the SQL statement to be tested, the filtering ratio of each intermediate result set and other characteristics.
    
 
-In the following two chapters, cluster environment configuration file and load generation task configuration file, we have made specific descriptions of related configuration parameters. After explaining the configuration file format, we give configuration examples of TPC-H and SSB for reference.
+In the following two chapters, we have made specific descriptions of related configuration parameters. After explaining the configuration file format, we give configuration examples of TPC-H and SSB for reference.
 
-### Operation mode
-
-The startup program of Touchstone is Touchstone.jar. After writing the configuration file, use the following command to start the program:
-
-```shell
-java -jar Touchstone.jar XXX.conf
-```
-After startup, Touchstone.jar will allocate the required files to the corresponding nodes in the cluster and start the cluster generation task. After the cluster generation task is started, the controller will calculate the parameter filling information of the Query. After the calculation is completed, the information will be distributed to the DataGenerator nodes in the cluster for data generation until the end of the generation task.
-
-### Operation result
+## Generation result
 
 + **Instantiated query parameters**: Generated in the log of the Touchstone controller, search for "Final instantiated parameters" in the log file to locate, and the order of the parameters is the same as the order of the symbolic parameters in the input cardinality constraint.
 + **The generated data file**: Generated in the path configured by the data generator.
@@ -37,22 +29,9 @@ After startup, Touchstone.jar will allocate the required files to the correspond
 
 ## Cluster environment configuration file
 
-**Attention: ** All cluster configuration files need to be written in one file, such as touchstone.conf in the running examples folder.
+**Attention:** All cluster configuration files need to be written in one file, such as touchstone.conf in the running examples folder.
 
-1. Configuration file of Touchstone.jar
-
-   Since the program file needs to be copied to the cluster and the cluster task needs to be started, the IP, user name and password of the cluster nodes need to be configured. The configuration items are IPs of servers, user names of servers and passwords of servers, each node The order of the configuration needs to be consistent. When the program is running, the operating system cache of all nodes will be cleared by default to ensure that JVM GC will not occur due to insufficient memory during the program. If there is no shortage of memory, the root password can be omitted. The sample configuration file is as follows:
-
-   ```yaml
-   ## configurations of servers
-   
-   IPs of servers: 10.11.1.190; 10.11.1.191; 10.11.1.192
-   password of root user: w@ngl5i
-   user names of servers: touchstone; touchstone; touchstone
-   passwords of servers: 123456; 123456; 123456
-   ```
-
-2. Configuration file of RunController.jar
+1. Configuration file of RunController.jar
 
    For the program file, you need to configure the ip used as the controller node in the cluster, the file path of the node (TouchStone.jar will copy the relevant files to the file path), and the port number of the node that sends information to the outside world. For example, the following configuration items, configure the controller's running node as 10.11.1.190, port number as 32100, and execution file path as ~//icde_test
 
@@ -89,7 +68,7 @@ After startup, Touchstone.jar will allocate the required files to the correspond
    path of log4j.properties: .//lib//log4j.properties
    ```
 
-3. RunDataGenerator.jar
+2. RunDataGenerator.jar
 
    The program file needs to be configured with five parameters:
    1. the ip of the node used as data generator in the cluster
@@ -112,7 +91,7 @@ After startup, Touchstone.jar will allocate the required files to the correspond
 
    Since the performance of starting multiple data generation threads in one JVM is often not as good as starting the same number of data generation threads in multiple JVMs, it is recommended to start multiple JVMs on a node according to the number of physical CPU cores. The above example configuration starts 3 JVMs on each physical node, and 2 data generation threads are started in each JVM. All operating directories will be created automatically, without manual creation.
 
-4. Some parameters required during the operation of Touchstone
+3. Some parameters required during the operation of Touchstone
 
    This part of the parameters generally does not need to be changed, and the default values can be used directly. For details, please refer to the paper.
 
@@ -355,14 +334,14 @@ Please see the standard configuration file of the system running program: touchs
 
 + TPC-H standard configuration file when sf=1:
 
-  Schema configuration file: tpch_schema_sf_1
+  Schema configuration file: [tpch_schema_sf_1](input/tpch_schema_sf_1.txt)
 
-  Constraint configuration file for the first 16 statements: tpch_cardinality_constraints_sf_1.txt
+  Constraint configuration file for the first 16 statements: [tpch_cardinality_constraints_sf_1.txt](input/tpch_cardinality_constraints_sf_1.txt)
 
   Example diagram of constraint configuration for the first 16 sentences: TPC-H Query1-16 SF=1.png
 
 + ssb standard configuration file when sf=1:
 
-  Schema configuration file: ssb_schema_sf_1
+  Schema configuration file: [ssb_schema_sf_1](input/ssb_schema_sf_1.txt)
 
-  Constraint configuration file: ssb_cardinality_constraints_Q1-Q4.txt
+  Constraint configuration file: [ssb_cardinality_constraints_Q1-Q4.txt](input/ssb_cardinality_constraints_Q1-Q4.txt)

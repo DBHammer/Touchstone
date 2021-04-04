@@ -4,8 +4,8 @@
 
 In the running examples folder, there are 2 executable files, namely `RunController.jar` and `RunController.jar`. They are responsible for executing the data generation task in the cluster. You cam complie them by `mvn package` The summary description is as follows:
 
-1. RunController.jar is automatically started by Touchstone.jar after deployment. Only one node runs the program. It is the management node of the cluster. It is responsible for managing the load generation tasks in each RunDataGenenrator.jar. It communicates through the netty network framework (sending data generation tasks and Join Information Table).
-2. RunDataGenenrator.jar, which is automatically started by Touchstone.jar after deployment, can run on multiple cluster nodes and execute data generation tasks in a distributed and parallel manner. Runtime information is distributed by the RunController.jar program file in the cluster.
+1. RunController.jar is automatically started by Touchstone.jar after deployment. Only one node runs the program. It is the management node of the cluster. It is responsible for managing the load generation tasks in each RunDataGenenrator.jar. It communicates through the netty network framework (sending data generation tasks and Join Information Table). Run with `java -jar RunController.jar <cluster_config>`.
+2. RunDataGenenrator.jar, which is automatically started by Touchstone.jar after deployment, can run on multiple cluster nodes and execute data generation tasks in a distributed and parallel manner. Runtime information is distributed by the RunController.jar program file in the cluster. Run with `java -jar RunDataGenenrator.jar <cluster_config> <generator_id>`.
 
 ## Overview of the configuration file
 

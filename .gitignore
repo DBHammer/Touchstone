@@ -65,3 +65,4 @@ outerJoin/
 target
 log/
 !src/main/resources/JLink.jar
+!mysql-connector-java-8.0.23.jar

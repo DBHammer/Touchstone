@@ -2,7 +2,9 @@
 
 [中文版本](README-ZH.md)
 
-[RunExamples](https://github.com/DBHammer/Touchstone/tree/master/running%20examples)
+[RunExamples](https://github.com/DBHammer/Touchstone/tree/master/running%20examples) 
+
+[QuickStart](quickstart/)
 
 ## Introduction
 

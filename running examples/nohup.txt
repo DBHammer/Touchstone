@@ -1,4 +1,0 @@
-Clear the cache of memory for all servers!
-All running directories were successfully made!
-All required files were successfully copied!
-Controller and data generators startup successful!

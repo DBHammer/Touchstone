@@ -4,72 +4,58 @@
 >
 > **单位：华东师范大学 数据科学与工程学院**
 
-在Github仓库的[running examples](https://github.com/daseECNU/Touchstone/tree/master/running%20examples)中，我们提供了可直接运行的jar打包程序，运行环境为：**Linux & Java 1.8+** ，本篇文档将对程序的使用做出详细说明。
-
 ## 概述
 
 ### 程序文件概述
 
-在[running examples](https://github.com/daseECNU/Touchstone/tree/master/running%20examples)文件夹中，包含3个可执行文件，分别是Touchstone.jar，RunController.jar和RunController.jar。其中Touchstone.jar负责在集群中自动化部署运行环境并启动生成任务，RunController.jar和RunDataGenenrator.jar负责在集群中执行数据生成任务，概要说明如下：
+在[running examples](https://github.com/daseECNU/Touchstone/tree/master/running%20examples) 文件夹中，包含2个可执行文件，分别是RunController.jar和RunController.jar。RunController.jar和RunDataGenenrator.jar负责在集群中执行数据生成任务，概要说明如下：
 
-1. Touchstone.jar，部署和启动程序。程序运行时会根据配置内容，将执行文件和配置文件拷贝到集群的运行节点中，拷贝完成后启动对应节点上的程序执行生成任务。
-2. RunController.jar，由Touchstone.jar在部署之后自动启动，只有一个节点运行该程序，是集群的管理节点，负责管理负载生成任务的中各个RunDataGenenrator.jar，通过netty网络框架进行通信（发送数据生成任务和Join Information Table）。
+1. RunController.jar，只有一个节点运行该程序，是集群的管理节点，负责管理负载生成任务的中各个RunDataGenenrator.jar，通过netty网络框架进行通信（发送数据生成任务和Join Information Table）。
 3. RunDataGenenrator.jar，由Touchstone.jar在部署之后自动启动，可以运行在多个集群节点中，分布式并行执行数据生成任务，由集群中的RunController.jar程序文件分配运行时信息。
+
+### 快速上手
+```shell
+$ cd running\ examples/
+$ mkdir data
+$ mkdir outerJoin
+$ java -jar RunController.jar touchstone.conf
+
+#open anothor terminal
+$ java -jar RunDataGenerator.jar touchstone.conf 0
+```
 
 ### 配置文件概述
 
 集群启动前需要编写集群环境配置文件和负载生成任务配置文件。
-+ 集群配置文件样例为[touchstone.conf](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/touchstone.conf)，配置集群运行时需要的节点，并发度，运行路径等信息
++ 集群配置文件样例为[touchstone.conf](touchstone.conf) ，配置集群运行时需要的节点，并发度，运行路径等信息
 + 负载生成任务配置文件包含两个配置文件，分别为
-   + Table信息（样例为[tpch_schema_sf_1](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/input/tpch_schema_sf_1.txt)），描述了待生成的表数据需要满足的基本数据格式，包括Schema信息和表数据的基本分布
-   + 负载语句信息（样例为[tpch_cardinality_constraints_sf_1.txt](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/input/tpch_cardinality_constraints_sf_1.txt)），描述了需要测试的SQL语句的构造，每个中间结果集的过滤比例等特征
+   + Table信息（样例为[tpch_schema_sf_1](input/tpch_schema_sf_1.txt) ），描述了待生成的表数据需要满足的基本数据格式，包括Schema信息和表数据的基本分布
+   + 负载语句信息（样例为[tpch_cardinality_constraints_sf_1.txt](input/tpch_cardinality_constraints_sf_1.txt )），描述了需要测试的SQL语句的构造，每个中间结果集的过滤比例等特征
    
 
 在后续的集群环境配置文件和负载生成任务配置文件两个章节中，我们对相关配置参数做了具体说明。说明配置文件格式之后，我们给出了TPC-H和SSB的配置样例以供参考。
 
-### 运行方式
-
-Touchstone的启动程序是Touchstone.jar，在编写完成配置文件之后，使用如下命令即可启动程序
-
-```shell
-java -jar Touchstone.jar XXX.conf
-```
-启动后，Touchstone.jar会将所需文件分配给集群中的相应节点，并启动集群生成任务。集群生成任务启动后，controller会计算Query的参数填充信息，计算完成后，分配信息给集群中的DataGenerator节点，进行数据生成，直至生成任务结束。
-
 ### 运行结果
 
-+ **实例化的查询参数**：生成于Touchstone controller的日志中，在日志文件中搜索"Final instantiated parameters"进行定位，参数顺序与输入基数约束中的符号参数顺序相同。
++ **实例化的查询参数**：生成于Touchstone controller的日志中，在日志文件中搜索"Final instantiated parameters"进行定位，参数顺序与输入基数约束中的符号参数顺序相同，或者通过配置输出路径在路径中获取结果。
 + **生成的表数据文件**：生成于data generator配置的路径中。
 
 
 
 ## 集群环境配置文件
 
-**注意：** 所有集群配置文件需要编写在一个文件中，样例如running examples文件夹下的[touchstone.conf](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/touchstone.conf)
+**注意：** 所有集群配置文件需要编写在一个文件中，样例如running examples文件夹下的[touchstone.conf](touchstone.conf)
 
-1. Touchstone.jar的配置文件
+1. RunController.jar的配置文件
 
-   由于该程序文件需要拷贝运行文件到集群中，并且需要启动集群任务，因此需要配置集群节点的IP，用户名和密码，配置项为IPs of servers，user names of servers和passwords of servers，每个节点的配置顺序需要保持一致。程序在运行时默认会清空所有节点的操作系统缓存，确保程序在运行过程中不会因为内存不足而出现JVM GC。若没有内存不足的情况，可以不配置root密码。样例配置文件如下。
-
-   ```yaml
-   ## configurations of servers
-   
-   IPs of servers: 10.11.1.190; 10.11.1.191; 10.11.1.192
-   password of root user: w@ngl5i
-   user names of servers: touchstone; touchstone; touchstone
-   passwords of servers: 123456; 123456; 123456
-   ```
-
-2. RunController.jar的配置文件
-
-   对于该程序文件，需要配置在集群中用作controller节点的ip，在该节点的文件路径（TouchStone.jar会将相关文件复制到该文件路径），以及该节点对外发送信息的端口号。例如下面的配置项，配置controller的运行节点为10.11.1.190，端口号为32100，执行文件路径为~//icde_test
+   对于该程序文件，需要配置在集群中用作controller节点的ip，在该节点的文件路径（TouchStone.jar会将相关文件复制到该文件路径），以及该节点对外发送信息的端口号。例如下面的配置项，配置controller的运行节点为10.11.1.190，端口号为32100。并且将实例化后的参数输出到`data/result`中。
 
    ```yaml
    ## configurations of controller
    
    IP of controller: 10.11.1.190
    port of controller: 32100
-   running directory of controller: ~//icde_test
+   result output directory: ./data/result
    ```
 
    在controller运行时，需要加载数据生成任务的配置文件，包括待生成数据库Table信息和负载特征（约束链中的基数约束），这两项配置文件的具体形式将在下面做出具体介绍，配置controller的配置文件输入项如下：
@@ -102,10 +88,9 @@ java -jar Touchstone.jar XXX.conf
    该程序文件需要配置五个参数，分别为：
 
    1. 在集群中用作data generator节点的ip
-   2. 程序运行的文件路径
-   3. 和controller交互的端口号
-   4. 当前程序用于数据生成的线程数
-   5. 数据输出的文件夹
+   2. 和controller交互的端口号
+   3. 当前程序用于数据生成的线程数
+   4. 数据输出的文件夹
 
    下面给出了一组配置实例，在191，192两台机器上配置了data generator程序，每台机器上运行3个实例，每个实例运行2个生成线程，每台机器上的端口号为32101; 32102; 32103，输出文件夹为.//data。
 
@@ -121,7 +106,7 @@ java -jar Touchstone.jar XXX.conf
 
    由于一个JVM中启动多个数据生成线程的性能往往没有多个JVM中启动相同数量数据生成线程的性能好，所以建议在一个节点上根据CPU物理核数启动多个JVM。上面的示例配置在每个物理节点上启动了3个JVM，每个JVM中启动了2个数据生成线程。所有运行目录会自动创建，无需人工创建。
 
-4. Touchstone运行过程中所需的一些参数
+3. Touchstone运行过程中所需的一些参数
 
    这部分参数一般不需更改，可直接使用默认值，详细含义可查看论文。
 
@@ -142,7 +127,16 @@ java -jar Touchstone.jar XXX.conf
    #Jointable中每个status最多的主键数量，即压缩算法中的L
    maximum size of PKVs: 10000 
    ```
+4. 一些参数能被用来配置左外连接，一般不建议修改。
 
+    ```yaml
+    ## outer join
+    join info output path: ./outerJoin
+    maximum num of join table file in read or write queue: 5
+    maximum size of join table in memory to write : 200
+    maximum size of join table in memory to read : 200
+    minimum num of join table status to read: 20
+    ```
 
 
 ## 负载生成任务配置文件
@@ -359,18 +353,18 @@ Touchstone有两个输入数据文件，分别包含了数据库Schema信息（�
 
 ## 集群标准配置文件样例
 
-系统运行程序的标准配置文件请见：[touchstone.conf](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/touchstone.conf)
+系统运行程序的标准配置文件请见：[touchstone.conf](touchstone.conf)
 
 + sf=1时的tpch标准配置文件
 
-  shema配置文件：[tpch_schema_sf_1](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/input/tpch_schema_sf_1.txt)
+  shema配置文件：[tpch_schema_sf_1](input/tpch_schema_sf_1.txt)
 
-  前16个语句的约束配置文件：[tpch_cardinality_constraints_sf_1.txt](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/input/tpch_cardinality_constraints_sf_1.txt)
+  前16个语句的约束配置文件：[tpch_cardinality_constraints_sf_1.txt](input/tpch_cardinality_constraints_sf_1.txt)
 
-  前16个语句的约束配置示例图：[TPC-H Query1-16 SF=1.png](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/TPC-H%20Query1-16%20SF%3D1.png)
+  前16个语句的约束配置示例图：[TPC-H Query1-16 SF=1.png](TPC-H%20Query1-16%20SF%3D1.png)
 
 + sf=1时的ssb标准配置文件
 
-  shema配置文件：[ssb_schema_sf_1](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/input/ssb_schema_sf_1.txt)
+  shema配置文件：[ssb_schema_sf_1](input/ssb_schema_sf_1.txt)
 
-  约束配置文件：[ssb_cardinality_constraints_Q1-Q4.txt](https://github.com/daseECNU/Touchstone/blob/master/running%20examples/input/ssb_cardinality_constraints_Q1-Q4.txt)
+  约束配置文件：[ssb_cardinality_constraints_Q1-Q4.txt](input/ssb_cardinality_constraints_Q1-Q4.txt)

@@ -24,7 +24,7 @@ from
           and p_partkey = l_partkey
           and o_orderkey = l_orderkey
           and s_nationkey = n_nationkey
-          and p_name like '%EBB4nprx90JSfIc8NQYVimx6Ge5pDEt5KSOUqc%'
+          and p_name like '%XEcnSJjMbiNDzYYCpPfR3s092UMaKLYY%'
     ) as profit
 group by
     nation,

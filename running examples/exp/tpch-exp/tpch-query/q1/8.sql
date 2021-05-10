@@ -26,10 +26,10 @@ from
           and o_custkey = c_custkey
           and c_nationkey = n1.n_nationkey
           and n1.n_regionkey = r_regionkey
-          and r_name = '5X84hoXk'
+          and r_name = 'kQMBQPC90'
           and s_nationkey = n2.n_nationkey
-          and o_orderdate between date '1993-12-11' and date '1995-12-14'
-          and p_type = 'KoPL3WmnWsfQ7rt9ywZ'
+          and o_orderdate between date '1993-10-04' and date '1995-10-07'
+          and p_type = 'jLHdUU5k2WT8jlwHNlIS'
     ) as all_nations
 group by
     o_year

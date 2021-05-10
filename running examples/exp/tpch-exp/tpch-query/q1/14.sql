@@ -9,5 +9,5 @@ from
     part straight_join lineitem
 where
         l_partkey = p_partkey
-  and l_shipdate >= date '1995-08-21'
-  and l_shipdate < date '1995-09-22';
+  and l_shipdate >= date '1992-09-29'
+  and l_shipdate < date '1992-10-31';

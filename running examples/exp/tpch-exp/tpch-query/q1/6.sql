@@ -3,7 +3,7 @@ select
 from
     lineitem
 where
-        l_shipdate >= date '1993-02-08'
-  and l_shipdate < date '1994-12-14'
-  and l_discount between 0.025603187084198 and  0.05229787826538086
+        l_shipdate >= date '1994-08-11'
+  and l_shipdate < date '1996-06-15'
+  and l_discount between 0.04317728281021119 and  0.06987196207046509
   and l_quantity < 14.080395758152008;

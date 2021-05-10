@@ -9,7 +9,7 @@ from
         from
             customer left outer join orders on
                         c_custkey = o_custkey
-                    and o_comment not like '%xRa8SqbYX6pLJas6dT9NCk4kaOhPwR%'
+                    and o_comment not like '%5UZG1NBLxLz8OS2fr6t7G1kaoepDZz27uRQRVRMKII8f7B%'
         group by
             c_custkey
     ) as c_orders (c_custkey, c_count)

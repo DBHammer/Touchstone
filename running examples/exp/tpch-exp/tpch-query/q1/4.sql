@@ -5,8 +5,8 @@ select
 from
     orders
 where
-        o_orderdate >= '1992-11-25'
-  and o_orderdate < '1993-02-25'
+        o_orderdate >= date '1997-05-03'
+  and o_orderdate < date '1997-08-03'
   and exists (
         select
             *
@@ -14,7 +14,7 @@ where
             lineitem
         where
                 l_orderkey = o_orderkey
-          and l_commitdate < '1996-05-03'
+          and l_commitdate < date '1996-05-03'
     )
 group by
     o_orderpriority

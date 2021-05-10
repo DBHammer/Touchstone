@@ -4,8 +4,8 @@ select
 from
     lineitem
 where
-        l_shipdate >= '1997-06-15'
-  and l_shipdate < '1997-09-18'
+        l_shipdate >= '1995-11-12'
+  and l_shipdate < '1996-02-15'
 group by
     l_suppkey;
 

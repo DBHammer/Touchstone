@@ -9,7 +9,7 @@ from
     orders STRAIGHT_JOIN
     lineitem
 where
-        c_mktsegment = 'MLHNKKJ'
+        c_mktsegment = 'dykvNBgNA'
   and c_custkey = o_custkey
   and l_orderkey = o_orderkey
   and o_orderdate < date '1995-03-10'

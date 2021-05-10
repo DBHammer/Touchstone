@@ -8,16 +8,16 @@ from
     partsupp
 where
         p_partkey = ps_partkey
-  and p_brand <> '1FyGaKjdkd'
-  and p_type not like '%gnuDaTrhbCZ3IN0T%'
-  and p_size in (36, 4, 35, 14, 30, 42, 39, 5)
+  and p_brand <> 'QTBPMIDtPE'
+  and p_type not like '%EeLu8mwZFJkIBtQiaJx%'
+  and p_size in (48, 40, 42, 10, 26, 34, 8, 6)
   and ps_suppkey not in (
     select
         s_suppkey
     from
         supplier
     where
-            s_comment like '%jPIl3xc9QJIlxEUnjtFlVp8EPUiYSKOUENbEBqsaYo2sCEDY6L9iDI3xVDEEFpWVr8OOThSxepj%'
+            s_comment like '%FoLoP07cZVBv8WY3aR7rS6uOigqMiiMbPd%'
 )
 group by
     p_brand,

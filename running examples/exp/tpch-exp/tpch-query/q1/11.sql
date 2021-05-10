@@ -8,7 +8,7 @@ from
 where
     ps_suppkey = s_suppkey
   and s_nationkey = n_nationkey
-  and n_name = 'SsqGYrauHj'
+  and n_name = 'a8MimzQaG'
 group by
     ps_partkey having
     sum(ps_supplycost * ps_availqty) > (
@@ -21,7 +21,7 @@ group by
     where
     ps_suppkey = s_suppkey
                   and s_nationkey = n_nationkey
-                  and n_name = 'SsqGYrauHj'
+                  and n_name = 'a8MimzQaG'
     )
 order by
     value desc;

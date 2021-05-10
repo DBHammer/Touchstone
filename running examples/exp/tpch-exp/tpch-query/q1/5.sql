@@ -15,9 +15,9 @@ where
   and c_nationkey = s_nationkey
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
-  and r_name = 'objt0EFK'
-  and o_orderdate >= date '1994-11-06'
-  and o_orderdate < date '1995-11-08'
+  and r_name = 'k30tISVv'
+  and o_orderdate >= date '1997-07-24'
+  and o_orderdate < date '1998-07-26'
 group by
     n_name
 order by

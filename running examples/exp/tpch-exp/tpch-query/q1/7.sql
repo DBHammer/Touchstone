@@ -21,13 +21,13 @@ from (
            and s_nationkey = n1.n_nationkey
            and c_nationkey = n2.n_nationkey
            and (
-             (n1.n_name = 'UUluPiAIUNVq'
-           and n2.n_name = 'fn1')
-            or (n1.n_name = 'Pdryl7WtNL'
-           and n2.n_name = '5X0CZAIMrH0NRY')
+             (n1.n_name = 'TqzUPTX'
+           and n2.n_name = '1KxVmoP6KY0qM')
+            or (n1.n_name = 'VEjWT'
+           and n2.n_name = 'Eme1r')
              )
-           and l_shipdate between date '1992-07-06'
-           and date '1994-08-18'
+           and l_shipdate between date '1994-06-24'
+           and date '1996-08-05'
      ) as shipping
 group by supp_nation,
          cust_nation,

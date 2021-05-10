@@ -1,2 +1,2 @@
 #!/bin/bash
-mysql -uqswang -p$1 -h$2 --local-infile=1 < $3
+mysql -u$3 -p$4 -h$1 --local-infile=1 < $2

@@ -3,6 +3,6 @@ for j in {1..5}
 do
 for i in {1..13}
 do
-	java SQLProduction.java ../tsssbdata/data$j/result ssb-templates/$i > q$j/$i.sql
+	java SQLProduction ../tsssbdata/data$j/result ssb-templates/$i > q$j/$i.sql
 done
 done

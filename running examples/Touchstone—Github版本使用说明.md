@@ -31,7 +31,6 @@ $ java -jar RunDataGenerator.jar touchstone.conf 0
 + 负载生成任务配置文件包含两个配置文件，分别为
    + Table信息（样例为[tpch_schema_sf_1](input/tpch_schema_sf_1.txt) ），描述了待生成的表数据需要满足的基本数据格式，包括Schema信息和表数据的基本分布
    + 负载语句信息（样例为[tpch_cardinality_constraints_sf_1.txt](input/tpch_cardinality_constraints_sf_1.txt )），描述了需要测试的SQL语句的构造，每个中间结果集的过滤比例等特征
-   
 
 在后续的集群环境配置文件和负载生成任务配置文件两个章节中，我们对相关配置参数做了具体说明。说明配置文件格式之后，我们给出了TPC-H和SSB的配置样例以供参考。
 
@@ -40,7 +39,27 @@ $ java -jar RunDataGenerator.jar touchstone.conf 0
 + **实例化的查询参数**：生成于Touchstone controller的日志中，在日志文件中搜索"Final instantiated parameters"进行定位，参数顺序与输入基数约束中的符号参数顺序相同，或者通过配置输出路径在路径中获取结果。
 + **生成的表数据文件**：生成于data generator配置的路径中。
 
+## 载入负载和生成查询
 
+通过运行程序，可以生成与配置需求相符的负载。本项目还提供了对应的脚本，用于将负载数据加载入数据库并生成对应的查询。
+
+移动至`exp/tpch-exp`目录下，并运行脚本`quickstart.sh`，该脚本需要三个参数，分别为数据库用户名、密码和前述生成数据的所在目录。
+
+```shell
+$ cd exp/tpch-exp/
+$ ./quickstart.sh root 123 ../../data
+```
+
+由于生成的数据量较大，数据库加载耗时较长，也可仅生成查询。
+
+```shell
+$ cd exp/tpch-exp/
+$ ./quickstart-without-db.sh ../../data
+```
+
+生成的查询输出于`epx/tpch-epx/tpch-query/q1`文件夹下。
+
+类似的，本项目也支持了对SSB负载的负载载入和查询生成。
 
 ## 集群环境配置文件
 
@@ -231,9 +250,8 @@ Touchstone有两个输入数据文件，分别包含了数据库Schema信息（�
 下面会根据TPC-H的一些几个Query示例输入来介绍输入数据的具体格式。
 
 1. TPC-H的Query 1在MySQL上的物理查询树
-   
+  
    <img src="http://ww3.sinaimg.cn/large/006tNc79ly1g3zap9kpbzj30d408naal.jpg" width="240" height="155" />
-   
 
 对应的约束链为：
 

@@ -1,4 +1,7 @@
+
 #!/bin/bash
+mkdir data
+mkdir outerJoin
 rm -f data/*
 rm -f log/*
 rm -f query-init/query/*

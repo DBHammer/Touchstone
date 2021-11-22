@@ -69,7 +69,8 @@ And then you need config the path of instantiated query parameters, which is `da
 
    ```yaml
    ## configuration of Mathematica
-   
+   ## Run Java with Libraray Path, e.g.
+   ## java -Djava.library.path=/opt/Wolfram/WolframEngine/12.1/SystemFiles/Links/JLink/SystemFiles/Libraries/Linux-ARM/
    path of JLink: C://Mathematica//10.0//SystemFiles//Links//JLink
    ```
 

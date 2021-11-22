@@ -132,7 +132,7 @@ public class FilterOperation implements Serializable {
                 return geneValue.contains(values.get(0));
             } else { // =、in
                 for (int i = 0; i < values.size(); i++) {
-                    if (geneValue.equals(values.get(i))) {
+                    if (values.get(i).equals(geneValue)) {
                         return true;
                     }
                 }

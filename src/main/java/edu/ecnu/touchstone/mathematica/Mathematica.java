@@ -21,7 +21,7 @@ public class Mathematica {
     public Mathematica() {
         try {
             ml = MathLinkFactory.createKernelLink("-linkmode launch -linkname "
-                    + "'C:\\Program Files\\Wolfram Research\\Mathematica\\10.0\\MathKernel.exe'");
+                    + "\"/opt/Wolfram/WolframEngine/12.1/Executables/MathKernel\"");
             // empty the computing environment
             ml.discardAnswer();
         } catch (MathLinkException e) {
